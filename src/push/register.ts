@@ -11,7 +11,7 @@ import { Platform } from 'react-native';
 
 import { api } from '@/api/client';
 import type { Result } from '@/api/errors';
-import { fail, ok } from '@/api/errors';
+import { ok } from '@/api/errors';
 
 export type PushPlatform = 'ANDROID' | 'IOS';
 

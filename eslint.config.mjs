@@ -4,7 +4,7 @@ import expoConfig from 'eslint-config-expo/flat.js';
 export default [
   ...expoConfig,
   {
-    ignores: ['dist/*', 'src/api/generated/*', '.expo/*'],
+    ignores: ['dist/*', 'src/api/generated/*', '.expo/*', 'scripts/*'],
   },
   {
     rules: {

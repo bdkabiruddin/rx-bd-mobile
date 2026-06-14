@@ -2,7 +2,7 @@
 // hydration, idle-lock, and hard logout (with full local wipe).
 
 import { api, configureApiAuth, request } from '@/api/client';
-import { type Result, fail, ok } from '@/api/errors';
+import { type Result, ok } from '@/api/errors';
 import { wipeAllLocalData } from '@/offline/wipe';
 
 import { decodeAccessClaims } from './jwt';

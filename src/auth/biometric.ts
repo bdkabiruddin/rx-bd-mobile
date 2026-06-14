@@ -29,7 +29,6 @@ export async function authenticate(promptMessage: string): Promise<boolean> {
   // Even without biometric hardware, authenticateAsync can use the passcode.
   const result = await LocalAuthentication.authenticateAsync({
     promptMessage,
-    cancelLabel: undefined,
     disableDeviceFallback: false,
     requireConfirmation: false,
   });

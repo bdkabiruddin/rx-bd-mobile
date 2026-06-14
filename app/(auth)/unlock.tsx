@@ -31,6 +31,10 @@ export default function UnlockScreen(): React.ReactElement {
   }, [t, unlock]);
 
   React.useEffect(() => {
+    // Prompt biometric immediately on mount. Any setState happens only after
+    // the async prompt resolves (not synchronously in the effect), so the
+    // re-render-loop concern behind react-hooks/set-state-in-effect doesn't apply.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void tryUnlock();
   }, [tryUnlock]);
 

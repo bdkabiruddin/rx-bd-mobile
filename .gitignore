@@ -45,3 +45,6 @@ coverage/
 
 # OS
 .DS_Store
+
+# Generated API client (regenerate: npm run api:generate)
+src/api/generated/

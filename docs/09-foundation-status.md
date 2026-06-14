@@ -40,17 +40,31 @@ project once the dependency manifest is approved and installed.
 - `formatters.test.ts`, `errors.test.ts`, `jwt.test.ts` — pure-logic, run in
   Node once jest is installed.
 
-## Verification status (honest)
-- **Not yet typechecked / linted / tested in this environment** — the Expo
-  toolchain and dependencies are not installed (the sandbox cannot install
-  the RN/Expo native toolchain, and per the rx.bd rule deps need owner
-  approval first). The code is written to compile under the manifest's
-  versions; the first post-approval step is `npm install` →
-  `npm run typecheck && npm test`.
-- The three unit suites are designed to pass in Node (no native deps).
-- Native-binding modules (secure store, sqlite, biometric, screen-capture,
-  push) are written against the documented Expo APIs; they exercise on device
-  via Maestro flows in Phase 1.
+## Verification status (VERIFIED ✅)
+Dependencies were installed and the foundation verified in-repo against the
+real **Expo SDK 56** toolchain (React 19.2, RN 0.85):
+
+- **`tsc --noEmit` → 0 errors** (strict, `exactOptionalPropertyTypes`,
+  `noUncheckedIndexedAccess`).
+- **`jest` → 11/11 passing** across 3 suites (formatters, error model, JWT
+  decode) under a fast Node project (the jest-expo preset is reserved for
+  `*.test.tsx` component suites).
+- **`eslint .` → 0 errors** (Expo flat config + React-compiler purity rules).
+- **`npm run api:generate` → typed client generated** from the repo-root
+  `openapi.yaml` (551 routes, ~50k LOC). Gitignored; regenerated on demand.
+
+Toolchain notes captured for reproducibility:
+- `.npmrc` sets `legacy-peer-deps=true` — resolves an expo-router *web*
+  react/react-dom transitive peer mismatch (does not affect the native app).
+- `overrides` pin `jest-util`/`jest-mock`/`jest-snapshot` to 30.4.1 (a jest
+  29 util leaked from jest-expo's bundled watch plugin).
+- ESLint pinned to 9.x (eslint-plugin-react isn't ESLint-10-compatible yet).
+- `package-lock.json` committed for reproducible installs.
+
+Native-binding modules (secure store, sqlite, biometric, screen-capture,
+push) compile and typecheck against the real Expo APIs; they exercise on
+device via Maestro flows in Phase 1 (a device/emulator, not available in
+this sandbox).
 
 ## Immediate next steps (Phase 0 → 1)
 1. Owner approves `package.json`; run `npx create-expo-app . ` reconcile +

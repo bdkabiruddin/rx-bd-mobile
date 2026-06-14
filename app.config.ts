@@ -41,7 +41,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     version: '0.1.0',
     orientation: 'default', // tablets/iPad use landscape master-detail
     userInterfaceStyle: 'automatic',
-    newArchEnabled: true,
     assetBundlePatterns: ['**/*'],
     ios: {
       bundleIdentifier: meta.iosBundle,

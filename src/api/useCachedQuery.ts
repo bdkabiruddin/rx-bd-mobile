@@ -64,14 +64,16 @@ export function useCachedQuery<T>(opts: {
       });
       return { value: res.value, fetchedAt };
     },
-    initialData: seed ?? undefined,
+    // Let TanStack own staleness (computed outside our render — keeps this
+    // hook pure per the react-hooks/purity rule).
+    ...(opts.ttlMs !== undefined ? { staleTime: opts.ttlMs } : {}),
+    // Only pass initialData when we actually have a seed — exactOptionalPropertyTypes
+    // forbids an explicit `undefined` here.
+    ...(seed ? { initialData: seed } : {}),
   });
 
   const fetchedAt = query.data?.fetchedAt ?? seed?.fetchedAt ?? null;
-  const isStale =
-    fetchedAt !== null && opts.ttlMs !== undefined
-      ? Date.now() > fetchedAt + opts.ttlMs
-      : false;
+  const isStale = query.isStale;
 
   return {
     data: query.data?.value,

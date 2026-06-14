@@ -1,0 +1,35 @@
+{
+  "cli": { "version": ">= 12.0.0", "appVersionSource": "remote" },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": { "RXBD_ENV": "development" }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": { "RXBD_ENV": "staging" },
+      "ios": { "simulator": false }
+    },
+    "staging": {
+      "distribution": "internal",
+      "env": { "RXBD_ENV": "staging" },
+      "channel": "staging"
+    },
+    "production-patient": {
+      "env": { "RXBD_ENV": "production", "RXBD_FLAVOR": "patient-public" },
+      "channel": "production-patient",
+      "autoIncrement": true
+    },
+    "production-staff": {
+      "distribution": "internal",
+      "env": { "RXBD_ENV": "production", "RXBD_FLAVOR": "staff-internal" },
+      "channel": "production-staff",
+      "autoIncrement": true
+    }
+  },
+  "submit": {
+    "production-patient": {},
+    "production-staff": {}
+  }
+}

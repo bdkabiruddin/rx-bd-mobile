@@ -67,8 +67,16 @@ Read in order. The master plan is the entry point; the rest go deep on each pill
 
 ## Status
 
-**Planning complete; implementation not started.** No dependencies have been installed and
-no Expo project scaffolded yet — per the rx.bd rule that new dependencies need explicit
-owner approval. The exact scaffolding commands are specified in
-[`docs/01-architecture.md`](docs/01-architecture.md) §"Bootstrapping" and are ready to run
-on approval.
+**Phase 0 foundation source authored** — the shared shell is written as real, reviewable
+TypeScript: API client (bearer + single-flight refresh + idempotency), auth/session
+(secure-enclave tokens, biometric lock, two-key reverify, hard-logout wipe), the offline
+engine (fail-closed PHI codec + SQLite read-cache + durable queued-write outbox + sync),
+design tokens (faithful `--rxbd-*` port), bilingual i18n (Dhaka/৳/+880), security
+(screenshot guard), push (FCM/APNs), UI primitives, the Expo Router shell, and unit tests.
+See [`docs/09-foundation-status.md`](docs/09-foundation-status.md).
+
+**Not yet installed/built.** No dependencies are installed and no native build has run — the
+sandbox can't install the RN/Expo toolchain, and `package.json` is the dependency list
+awaiting owner approval. After approval: `npx expo install` to pin native versions →
+`npm install` → `npm run api:generate` → `npm run typecheck && npm test`. Bootstrapping
+detail in [`docs/01-architecture.md`](docs/01-architecture.md) §"Bootstrapping".

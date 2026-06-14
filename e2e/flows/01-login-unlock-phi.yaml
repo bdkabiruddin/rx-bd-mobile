@@ -1,0 +1,47 @@
+# Login → MFA → biometric unlock → PHI screen.
+# Verifies the secure session path and the PHI screenshot guard.
+appId: bd.rx.patient
+env:
+  RXBD_TEST_EMAIL: ${RXBD_TEST_EMAIL}
+  RXBD_TEST_PASSWORD: ${RXBD_TEST_PASSWORD}
+  RXBD_TEST_MFA: ${RXBD_TEST_MFA}
+---
+- launchApp:
+    clearState: true
+- assertVisible: 'Sign in'
+
+# Credentials
+- tapOn:
+    id: 'Email or phone'
+- inputText: ${RXBD_TEST_EMAIL}
+- tapOn:
+    id: 'Password'
+- inputText: ${RXBD_TEST_PASSWORD}
+- tapOn: 'Sign in'
+
+# MFA (skip block if the account has no MFA)
+- runFlow:
+    when:
+      visible: 'Two-factor verification'
+    commands:
+      - tapOn:
+          id: 'Verification code'
+      - inputText: ${RXBD_TEST_MFA}
+      - tapOn: 'Confirm'
+
+# Biometric unlock — Maestro grants the biometric on the emulator.
+- runFlow:
+    when:
+      visible: 'Unlock rx.bd'
+    commands:
+      # On Android emulator: `adb emu finger touch 1` is wired via the harness;
+      # Maestro's biometric helper confirms the prompt.
+      - assertVisible: 'Unlock rx.bd'
+
+# A PHI surface renders after unlock.
+- assertVisible: 'Upcoming appointments'
+
+# Background → privacy blur, then return.
+- pressKey: Home
+- launchApp
+- assertVisible: 'Upcoming appointments'

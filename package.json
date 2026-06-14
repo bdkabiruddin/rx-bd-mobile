@@ -53,6 +53,7 @@
     "jest": "^30.4.2",
     "jest-expo": "^56.0.5",
     "openapi-typescript": "^7.13.0",
+    "test-renderer": "^1.2.0",
     "typescript": "^6.0.3"
   },
   "overrides": {

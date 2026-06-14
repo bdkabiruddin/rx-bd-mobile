@@ -22,13 +22,14 @@ export async function putCache<T>(
 ): Promise<void> {
   const db = await getDb();
   const now = Date.now();
+  const valueEnc = await encrypt(JSON.stringify(value));
   await db.runAsync(
     `INSERT OR REPLACE INTO cache (key, tenant_id, user_id, value_enc, is_phi, fetched_at, ttl_ms)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
     key,
     opts.tenantId ?? null,
     opts.userId ?? null,
-    encrypt(JSON.stringify(value)),
+    valueEnc,
     opts.isPhi === false ? 0 : 1,
     now,
     opts.ttlMs ?? DEFAULT_TTL_MS,
@@ -45,9 +46,9 @@ export async function getCache<T>(key: string): Promise<CacheEntry<T> | null> {
   if (!row) return null;
   let value: T;
   try {
-    value = JSON.parse(decrypt(row.value_enc)) as T;
+    value = JSON.parse(await decrypt(row.value_enc)) as T;
   } catch {
-    return null; // undecryptable (e.g. key destroyed) → treat as miss
+    return null; // undecryptable (e.g. key destroyed / tampered) → treat as miss
   }
   const isStale = Date.now() > row.fetched_at + row.ttl_ms;
   return { value, fetchedAt: row.fetched_at, ttlMs: row.ttl_ms, isStale };

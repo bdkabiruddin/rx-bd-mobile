@@ -1,18 +1,17 @@
 // PHI codec — pluggable symmetric encryption for cached PHI values.
 //
 // FAIL-CLOSED BY DESIGN: until a real cipher is configured at boot via
-// `setCodec()`, encrypt()/decrypt() throw. This makes it IMPOSSIBLE to
+// `setCodec()`, encrypt()/decrypt() reject. This makes it IMPOSSIBLE to
 // accidentally persist plaintext PHI to the on-device cache.
 //
-// The production codec is AES-256-GCM with the key from
-// `encryptionKey.ts` (held in the device secure enclave). The concrete
-// implementation is provided by a native crypto module (e.g. SQLCipher at
-// the DB layer and/or react-native-quick-crypto for value-level AES) and
-// wired in app/_layout boot. See docs/02-security-compliance.md §2.
+// The production codec is AES-256-GCM (see `aesCodec.ts`) with the key from
+// `encryptionKey.ts` (held in the device secure enclave). Operations are
+// async because Web Crypto's SubtleCrypto is async; cache/outbox writes are
+// already async so this is transparent to callers.
 
 export interface Codec {
-  encrypt(plaintext: string): string;
-  decrypt(ciphertext: string): string;
+  encrypt(plaintext: string): Promise<string>;
+  decrypt(ciphertext: string): Promise<string>;
 }
 
 let codec: Codec | null = null;
@@ -25,14 +24,18 @@ export function isCodecReady(): boolean {
   return codec !== null;
 }
 
-export function encrypt(plaintext: string): string {
+export function clearCodec(): void {
+  codec = null;
+}
+
+export async function encrypt(plaintext: string): Promise<string> {
   if (!codec) {
     throw new Error('PHI codec not configured — refusing to store plaintext PHI.');
   }
   return codec.encrypt(plaintext);
 }
 
-export function decrypt(ciphertext: string): string {
+export async function decrypt(ciphertext: string): Promise<string> {
   if (!codec) {
     throw new Error('PHI codec not configured — cannot read encrypted cache.');
   }

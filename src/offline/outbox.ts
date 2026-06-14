@@ -29,6 +29,7 @@ export interface OutboxRow extends OutboxCommand {
 
 export async function enqueue(cmd: OutboxCommand): Promise<void> {
   const db = await getDb();
+  const bodyEnc = cmd.body === undefined ? null : await encrypt(JSON.stringify(cmd.body));
   await db.runAsync(
     `INSERT OR IGNORE INTO outbox
        (id, method, path, body_enc, reverify_token, created_at, attempts, next_attempt_at, resource_key)
@@ -36,7 +37,7 @@ export async function enqueue(cmd: OutboxCommand): Promise<void> {
     cmd.id,
     cmd.method,
     cmd.path,
-    cmd.body === undefined ? null : encrypt(JSON.stringify(cmd.body)),
+    bodyEnc,
     cmd.reverifyToken ?? null,
     Date.now(),
     cmd.resourceKey ?? null,
@@ -62,18 +63,20 @@ export async function dueCommands(limit = 25): Promise<OutboxRow[]> {
     Date.now(),
     limit,
   );
-  return rows.map((r) => ({
-    id: r.id,
-    method: r.method,
-    path: r.path,
-    body: r.body_enc ? JSON.parse(decrypt(r.body_enc)) : undefined,
-    ...(r.reverify_token ? { reverifyToken: r.reverify_token } : {}),
-    ...(r.resource_key ? { resourceKey: r.resource_key } : {}),
-    createdAt: r.created_at,
-    attempts: r.attempts,
-    nextAttemptAt: r.next_attempt_at,
-    lastError: r.last_error,
-  }));
+  return Promise.all(
+    rows.map(async (r) => ({
+      id: r.id,
+      method: r.method,
+      path: r.path,
+      body: r.body_enc ? JSON.parse(await decrypt(r.body_enc)) : undefined,
+      ...(r.reverify_token ? { reverifyToken: r.reverify_token } : {}),
+      ...(r.resource_key ? { resourceKey: r.resource_key } : {}),
+      createdAt: r.created_at,
+      attempts: r.attempts,
+      nextAttemptAt: r.next_attempt_at,
+      lastError: r.last_error,
+    })),
+  );
 }
 
 export async function remove(id: string): Promise<void> {

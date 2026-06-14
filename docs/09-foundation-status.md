@@ -76,6 +76,41 @@ this sandbox).
 5. Build the remaining auth surfaces (phone-OTP, OAuth, MFA screen) and the
    branch/department switchers.
 
+## Phase 1 progress (in flight)
+
+Landed on top of the verified foundation (all gates still green: tsc 0,
+eslint 0, jest 15/15):
+
+- **Real AES-256-GCM codec** (`offline/aesCodec.ts`) — Web Crypto, per-message
+  random IV, authenticated (GCM). Decoupled from native key fetch so it is
+  unit-tested under Node: **4 codec tests** prove round-trip, IV randomness,
+  tamper-detection, and wrong-key rejection. `offline/init.ts` fetches the
+  secure-enclave key and installs it at boot (`app/_layout.tsx`), so the cache
+  leaves fail-closed mode on a real device while staying fail-closed if
+  SubtleCrypto is ever unavailable.
+- **Codec is now async** end-to-end; `cache.ts` / `outbox.ts` await it.
+- **MFA screen** (`app/(auth)/mfa.tsx`) — completes the login→MFA→session flow.
+- **Multi-branch/department context** (`auth/context.ts`) — fetch my-branches /
+  my-departments and switch (re-issues tokens); `ui/BranchSwitcher.tsx` shows
+  only for multi-branch users (mirrors the web rule).
+- **Maestro E2E flows** (`e2e/flows/`) — `01-login-unlock-phi`,
+  `02-offline-booking-sync` (queued-write → reconnect → exactly-once). These
+  run on device/CI, not jest.
+
+### Component-test note
+RNTL component tests (`*.test.tsx`) are **deferred**: jest-expo (SDK 56) + jest
+30 + the new-arch "winter" runtime trips jest's module-scope guard on the lazy
+global `fetch`. RNTL + `test-renderer` are installed for when that upstream
+issue is fixed; until then the RN component/native surface is covered by the
+Maestro flows. The jest gate runs the fast Node logic suites (incl. the AES
+codec).
+
+## Remaining Phase 1 / Phase 2 next steps
+- Phone-OTP + OAuth login surfaces; reverify step-up UI for the 12 intents.
+- Resolve the RNTL/jest-expo winter-runtime issue (or pin a compatible combo)
+  and add component tests.
+- Patient + Doctor feature screens (Phase 2) on this shell.
+
 ## Traceability
 Backend stays unchanged so far. Any backend need that surfaces during
 integration goes through `docs/07-backend-change-protocol.md` (separate

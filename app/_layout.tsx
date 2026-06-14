@@ -24,6 +24,7 @@ import { useSession } from '@/auth/sessionStore';
 import { personaForRole } from '@/config/domain';
 import { evictExpired } from '@/offline/cache';
 import { startConnectivityWatch } from '@/offline/connectivity';
+import { initOfflineSecurity } from '@/offline/init';
 import { startSync } from '@/offline/sync';
 
 const queryClient = new QueryClient({
@@ -39,8 +40,14 @@ export default function RootLayout(): React.ReactElement {
     configureAuthBridge();
     const stopNet = startConnectivityWatch();
     const stopSync = startSync();
-    void evictExpired();
-    void hydrateSession().finally(() => setBooted(true));
+    // Install the AES codec (cache leaves fail-closed mode), then evict any
+    // expired PHI, then hydrate the session.
+    void initOfflineSecurity()
+      .then(() => evictExpired())
+      .catch(() => undefined)
+      .finally(() => {
+        void hydrateSession().finally(() => setBooted(true));
+      });
 
     const sub = AppState.addEventListener('change', (next: AppStateStatus) => {
       if (next === 'active') maybeLockOnResume();

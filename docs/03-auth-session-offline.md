@@ -64,7 +64,7 @@ type Session = {
 Tokens persist in secure store; the in-memory copy is cleared on background + re-read on
 unlock.
 
-## Part B — Offline (read cache + queued writes)
+## Part B — Offline (read cache + online-only writes)
 
 ### B.1 Goals (revised 2026-06-14)
 Render usefully with no/poor network for **reads**, and keep **writes safe** — without
@@ -111,3 +111,46 @@ User action → submitWrite({ method, path, body, reverifyToken? })
 - Pure-logic: AES codec round-trip/tamper/wrong-key (jest, green).
 - Maestro (device): cache renders offline; an add/edit/delete attempt while offline is
   **blocked** with the reconnect prompt; the same action succeeds once online.
+
+---
+
+## Part C — Data-loss prevention (audit 2026-06-14)
+
+A deep review for "can a user lose data in any way?" found three real vectors
+beyond the offline-write question. All are now closed in the foundation; the
+two hooks below are MANDATORY for every Phase-2 input form.
+
+### C.1 Idle-lock no longer destroys in-progress input  ✅ fixed
+- **Was:** idle-lock did `router.replace('/(auth)/unlock')`, which UNMOUNTED the
+  current screen — a half-typed clinical note / form was lost, and unlock
+  returned to the persona home, not the form.
+- **Now:** `locked` renders `LockOverlay` ON TOP of the live screen (no
+  navigation). The screen + its form state stay mounted; unlocking returns the
+  user exactly where they were. (`app/_layout.tsx`, `src/auth/LockOverlay.tsx`.)
+
+### C.2 Lost-response + retry can no longer duplicate  ✅ fixed
+- **Was:** the Idempotency-Key was regenerated on every attempt — even the
+  internal 401-refresh retry minted a new key, and a user-driven retry always
+  did — so "response lost to a network drop → user taps again" could create a
+  DUPLICATE (double appointment / payment / prescription).
+- **Now:** (1) `client.ts` threads the SAME key through the refresh-retry;
+  (2) `useWrite()` holds a STABLE key per action — reused across retries of a
+  failed write, reset only after success. **Every screen mutation MUST go
+  through `useWrite`** (not raw `submitWrite`).
+
+### C.3 In-progress input survives app-kill / background / eviction  ✅ added
+- Mobile OSes kill backgrounded apps; without persistence, unsaved input is
+  gone. `useDraft(key, initial)` autosaves form state (encrypted, PHI-safe) and
+  restores it on return. **Every Phase-2 input form MUST use `useDraft`.**
+- Tradeoff: drafts live in the encrypted cache and are wiped on hard-logout /
+  session-revoke (with all PHI). Idle-lock does NOT lose them (C.1). A future
+  enhancement may warn before a session-expiry logout if an unsaved draft exists.
+
+### Mandatory pattern for Phase-2 forms
+```
+const draft = useDraft('rx-note:<patientId>', '');   // survives kill/lock/bg
+const { submit, busy } = useWrite();                  // stable idempotency key
+// …bind draft.value/draft.setValue to inputs…
+const res = await submit({ method: 'POST', path: '/api/v1/…', body: {…} });
+if (res.ok) draft.clear();                            // remove the saved draft
+```

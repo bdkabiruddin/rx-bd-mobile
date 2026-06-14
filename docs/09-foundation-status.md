@@ -94,6 +94,12 @@ eslint 0, jest 15/15):
   prompt (never queued). Eliminates silent-loss vectors and is mandatory for
   clinical safety (server holds the live interlocks). Reads still cached.
   See doc 00 §2.3 / doc 03 §B.
+- **Data-loss audit (2026-06-14)** — closed three in-progress-input loss vectors:
+  (C.1) idle-lock now renders a LockOverlay instead of navigating, so form state
+  survives lock/unlock; (C.2) stable idempotency key (client retry + useWrite)
+  so a lost-response + retry can't duplicate; (C.3) useDraft autosaves
+  encrypted form drafts surviving app-kill/background. useWrite + useDraft are
+  mandatory for Phase-2 forms. See doc 03 §C.
 - **MFA screen** (`app/(auth)/mfa.tsx`) — completes the login→MFA→session flow.
 - **Multi-branch/department context** (`auth/context.ts`) — fetch my-branches /
   my-departments and switch (re-issues tokens); `ui/BranchSwitcher.tsx` shows

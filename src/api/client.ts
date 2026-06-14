@@ -66,9 +66,13 @@ export async function request<T>(
   if (token) headers.authorization = `Bearer ${token}`;
 
   if (opts.body !== undefined) headers['content-type'] = 'application/json';
-  if (isWrite(method)) {
-    headers[IDEMPOTENCY_HEADER] = opts.idempotencyKey ?? newIdempotencyKey();
-  }
+  // Generate the idempotency key ONCE and thread it through the refresh-retry
+  // so the retry reuses the SAME key — a server that already applied the first
+  // attempt dedupes the retry instead of creating a duplicate.
+  const idempotencyKey = isWrite(method)
+    ? (opts.idempotencyKey ?? newIdempotencyKey())
+    : undefined;
+  if (idempotencyKey) headers[IDEMPOTENCY_HEADER] = idempotencyKey;
   if (opts.reverifyToken) headers['x-reverify-token'] = opts.reverifyToken;
 
   let res: Response;
@@ -87,7 +91,11 @@ export async function request<T>(
   if (res.status === 401 && !opts._isRetry && authBridge) {
     const refreshed = await authBridge.refresh();
     if (refreshed) {
-      return request<T>(path, { ...opts, _isRetry: true });
+      return request<T>(path, {
+        ...opts,
+        ...(idempotencyKey ? { idempotencyKey } : {}),
+        _isRetry: true,
+      });
     }
     authBridge.onAuthFailure();
     return fail(toApiError(401, await safeJson(res)));

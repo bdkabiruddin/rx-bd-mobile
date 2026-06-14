@@ -40,14 +40,22 @@ parallel" is scoped by the roadmap (doc 06): the shell + patient + doctor land i
 production wave; pharmacy/lab/diagnostic/hospital/facility-staff and the admin-lite surface
 follow in close succession on the same shell. Nothing is rebuilt per persona.
 
-### 2.3 Offline — read cache + queued writes
+### 2.3 Offline — read cache + ONLINE-ONLY writes (revised 2026-06-14)
 - **Reads:** every screen renders the last successfully-fetched payload from an encrypted
   on-device cache, with an explicit "stale / offline" indicator and background refresh.
-- **Writes:** mutations are captured into a durable outbox with a client-generated
-  **Idempotency-Key** (the backend already enforces idempotency on write routes) and
-  replayed on reconnect. Conflicts surface to the user; we do not auto-merge clinical data.
-- This is the pragmatic middle path for Bangladesh — not online-only (too fragile), not
-  full CRDT sync (too costly/risky for a first release). Details in doc 03 §Offline.
+- **Writes (add / edit / delete):** **online-only.** When offline, a mutation is refused
+  with a clear "reconnect to make changes" prompt — never queued. The Idempotency-Key is
+  still attached so a mid-request network drop + user retry cannot double-apply.
+- **Why not a queued-write outbox** (the earlier plan): a deferred queue introduced real
+  silent-loss vectors (a queued mutation rejected on later sync, or wiped on session
+  revoke) and — decisively — **clinical mutations cannot be safely queued**: prescription
+  sign, dispense, and allergy/dose checks rely on the server's authoritative, live safety
+  interlocks; acting on stale offline state is unsafe. Online-only is simpler, loss-free,
+  and clinically correct.
+- **Future option:** selective offline writes MAY be added later for specific low-risk,
+  non-clinical convenience actions (e.g. an appointment *request*, a personal vitals-diary
+  entry) — explicitly per action, with conflict surfacing — never as a blanket default and
+  never for clinical/financial/safety mutations. Details in doc 03 §Offline.
 
 ### 2.4 Distribution — public stores + enterprise/MDM
 - **Patient app** → Google Play + Apple App Store, with the full health-data privacy

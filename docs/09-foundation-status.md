@@ -25,7 +25,7 @@ project once the dependency manifest is approved and installed.
 | i18n | `i18n/{types,formatters,strings,index}.ts` | `{en,bn}` resolver; Dhaka/৳-paisa/+880/freshness formatters |
 | API | `api/{errors,idempotency,client,useCachedQuery}.ts` | Result/ApiError model; bearer + single-flight refresh + idempotency; cached-query read hook |
 | Auth | `auth/{secureStore,sessionStore,refresh,biometric,reverify,jwt,boot}.ts` | Secure-enclave tokens; login/MFA; biometric lock + step-up; reverify; hard-logout wipe |
-| Offline | `offline/{codec,encryptionKey,db,cache,outbox,connectivity,sync,submit,wipe}.ts` | Fail-closed PHI codec; SQLite cache+outbox; idempotent queued-write replay; conflict surface |
+| Offline | `offline/{codec,encryptionKey,db,cache,connectivity,init,submit,wipe}.ts` | Fail-closed PHI codec; encrypted SQLite read cache; **online-only writes** (`submitWrite` — offline blocked, not queued) |
 | Security | `security/screenshotGuard.tsx` | FLAG_SECURE / screen-capture block for PHI screens |
 | Push | `push/register.ts` | FCM/APNs device-token registration to the existing backend route |
 | UI | `ui/{Button,FreshnessBadge,EmptyState,OfflineBanner,ScreenScaffold}.tsx` | Token-driven, accessible, min-48dp, never-fabricated empty states |
@@ -88,13 +88,18 @@ eslint 0, jest 15/15):
   secure-enclave key and installs it at boot (`app/_layout.tsx`), so the cache
   leaves fail-closed mode on a real device while staying fail-closed if
   SubtleCrypto is ever unavailable.
-- **Codec is now async** end-to-end; `cache.ts` / `outbox.ts` await it.
+- **Codec is now async** end-to-end; `cache.ts` awaits it.
+- **Offline writes revised → ONLINE-ONLY (2026-06-14).** Removed the write
+  outbox + sync engine; add/edit/delete are blocked offline with a reconnect
+  prompt (never queued). Eliminates silent-loss vectors and is mandatory for
+  clinical safety (server holds the live interlocks). Reads still cached.
+  See doc 00 §2.3 / doc 03 §B.
 - **MFA screen** (`app/(auth)/mfa.tsx`) — completes the login→MFA→session flow.
 - **Multi-branch/department context** (`auth/context.ts`) — fetch my-branches /
   my-departments and switch (re-issues tokens); `ui/BranchSwitcher.tsx` shows
   only for multi-branch users (mirrors the web rule).
 - **Maestro E2E flows** (`e2e/flows/`) — `01-login-unlock-phi`,
-  `02-offline-booking-sync` (queued-write → reconnect → exactly-once). These
+  `02-offline-writes-blocked` (offline write blocked → reconnect → succeeds). These
   run on device/CI, not jest.
 
 ### Component-test note

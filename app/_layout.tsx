@@ -25,7 +25,6 @@ import { personaForRole } from '@/config/domain';
 import { evictExpired } from '@/offline/cache';
 import { startConnectivityWatch } from '@/offline/connectivity';
 import { initOfflineSecurity } from '@/offline/init';
-import { startSync } from '@/offline/sync';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,9 +38,9 @@ export default function RootLayout(): React.ReactElement {
   React.useEffect(() => {
     configureAuthBridge();
     const stopNet = startConnectivityWatch();
-    const stopSync = startSync();
     // Install the AES codec (cache leaves fail-closed mode), then evict any
-    // expired PHI, then hydrate the session.
+    // expired PHI, then hydrate the session. (Writes are online-only — no
+    // outbox sync to start.)
     void initOfflineSecurity()
       .then(() => evictExpired())
       .catch(() => undefined)
@@ -55,7 +54,6 @@ export default function RootLayout(): React.ReactElement {
 
     return () => {
       stopNet();
-      stopSync();
       sub.remove();
     };
   }, []);

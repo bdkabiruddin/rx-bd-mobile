@@ -42,7 +42,7 @@ export interface RequestOptions {
   method?: Method;
   body?: unknown;
   /** Provide to make the write idempotent with a STABLE key (reused on retry).
-   *  Omit on writes to auto-generate one; pass for queued-outbox replays. */
+   *  Omit on writes to auto-generate one. */
   idempotencyKey?: string;
   /** Reverify token for two-key intents. */
   reverifyToken?: string;

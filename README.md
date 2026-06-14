@@ -60,7 +60,7 @@ Read in order. The master plan is the entry point; the rest go deep on each pill
 |---|---|---|
 | Framework | **React Native + Expo (TypeScript)** | Reuses rx.bd TS types/Zod/i18n/tokens; one codebase → Android phone+tablet+iPad; largest RN hiring pool in BD |
 | First-release scope | **All personas in parallel** | Ship the shared shell + every role flow together (see roadmap for sequencing within this) |
-| Offline | **Read cache + queued writes** | Pragmatic for intermittent BD networks; idempotency-key replay on reconnect, no full-CRDT complexity |
+| Offline | **Read cache + online-only writes** | Reads served from the encrypted cache offline; add/edit/delete require a live connection (blocked + "reconnect" prompt when offline). No write queue — eliminates silent-loss risk and is mandatory for clinical safety (the server holds the authoritative interlocks). Revised 2026-06-14 from "queued writes." |
 | Distribution | **Public stores + Enterprise/MDM** | Patient app on Play/App Store; staff/clinical apps via MDM/internal track from one codebase |
 
 ---

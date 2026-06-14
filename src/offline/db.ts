@@ -1,9 +1,11 @@
-// Local database — read cache + write outbox tables.
+// Local database — read cache only.
 //
 // Storage is expo-sqlite. PRODUCTION HARDENING: open with SQLCipher (drop-in
 // via op-sqlite) keyed from `getOrCreateCacheKey()` for whole-DB encryption;
 // PHI values are ALSO wrapped by the value-level codec (defense in depth).
-// The schema below is identical either way.
+//
+// Writes (add/edit/delete) are online-only (see offline/submit.ts) — there is
+// NO write queue, so this DB holds the read cache exclusively.
 
 import * as SQLite from 'expo-sqlite';
 
@@ -35,24 +37,14 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
     );
     CREATE INDEX IF NOT EXISTS idx_cache_user ON cache(user_id);
 
-    CREATE TABLE IF NOT EXISTS outbox (
-      id              TEXT PRIMARY KEY NOT NULL,   -- idempotency key
-      method          TEXT NOT NULL,
-      path            TEXT NOT NULL,
-      body_enc        TEXT,                        -- codec-encrypted JSON body
-      reverify_token  TEXT,
-      created_at      INTEGER NOT NULL,
-      attempts        INTEGER NOT NULL DEFAULT 0,
-      next_attempt_at INTEGER NOT NULL DEFAULT 0,
-      last_error      TEXT,
-      resource_key    TEXT                         -- preserves per-resource order
-    );
-    CREATE INDEX IF NOT EXISTS idx_outbox_order ON outbox(created_at);
+    -- Legacy: drop a write-queue table from any earlier dev build. Writes are
+    -- online-only now (no queue).
+    DROP TABLE IF EXISTS outbox;
   `);
 }
 
 /** Drop every local row — wipe on logout / session revoke / remote wipe. */
 export async function clearAllTables(): Promise<void> {
   const db = await getDb();
-  await db.execAsync('DELETE FROM cache; DELETE FROM outbox;');
+  await db.execAsync('DELETE FROM cache;');
 }

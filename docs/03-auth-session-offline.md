@@ -66,44 +66,48 @@ unlock.
 
 ## Part B — Offline (read cache + queued writes)
 
-### B.1 Goals
-Render usefully with no/poor network, capture user intent durably, and reconcile safely on
-reconnect — without re-implementing server business logic or auto-merging clinical data.
+### B.1 Goals (revised 2026-06-14)
+Render usefully with no/poor network for **reads**, and keep **writes safe** — without
+re-implementing server business logic. Writes are **online-only**: there is no deferred
+queue, which removes the silent-loss vectors a queue introduces and is mandatory for
+clinical correctness (see B.3).
 
 ### B.2 Read cache
-- TanStack Query is the in-memory layer; an **encrypted SQLite/MMKV persistor** is the
-  durable layer.
+- TanStack Query is the in-memory layer; an **encrypted SQLite persistor** (AES-256-GCM,
+  `offline/aesCodec.ts`) is the durable layer.
 - Every query result is written to the cache with `{ fetchedAt, ttl, tenantId, userId }`.
 - On screen mount: render cached data immediately with a **freshness badge**
   (`Live` / `Updated 5m ago` / `Offline — last synced …`), then background-refresh.
 - PHI cache entries obey the doc-02 encryption + TTL + wipe rules.
 
-### B.3 Write outbox
+### B.3 Writes — ONLINE-ONLY (`offline/submit.ts` → `submitWrite`)
 ```
-User action → build command { method, path, body, idempotencyKey, intent?, reverifyToken? }
-            → if online: send now; on success, reconcile cache
-            → if offline/failed-retryable: enqueue in durable outbox (encrypted)
-            → show optimistic state with a "pending sync" marker
+User action → submitWrite({ method, path, body, reverifyToken? })
+            → if OFFLINE:  return OFFLINE result → UI shows "reconnect to make changes"
+            → if ONLINE:   send now with an Idempotency-Key; return the Result
 ```
-- **Idempotency-Key** is generated client-side per command (backend enforces idempotency).
-- Outbox entries retry with backoff when connectivity returns (NetInfo-driven).
-- **Non-retryable** (validation 4xx) → surface to user, drop from outbox, revert optimistic
-  state.
+- Add / edit / delete **never queue**. Offline mutations are refused, not deferred.
+- **Why:** (1) a deferred queue can silently lose intent — a queued write rejected on later
+  sync, or wiped on session-revoke; (2) clinical mutations (prescription sign, dispense,
+  allergy/dose checks) depend on the server's **live, authoritative safety interlocks** —
+  queuing them means acting on stale safety state, which is unsafe.
+- **Idempotency-Key** is still attached so a mid-request network drop + user retry cannot
+  double-apply at the server (the backend enforces idempotency).
+- Sensitive (reverify-gated) actions go through `performReverifiedAction`, which is also
+  online-only and additionally requires a fresh biometric step-up.
 
-### B.4 Conflict & safety policy
-- Clinical writes are **never auto-merged**. If the server rejects a queued write because
-  state changed (e.g., prescription already dispensed, slot taken), the app surfaces a
-  clear conflict screen and asks the user to re-decide.
-- Sensitive intents (reverify-gated) are **not** queued offline by default — they require a
-  fresh biometric step-up, so they execute online or prompt when back online.
-- Ordering: the outbox preserves per-resource ordering; cross-resource ordering is
-  best-effort.
+### B.4 What is NOT available offline
+- All writes (add/edit/delete), real-time queue position, video telemedicine, payment
+  initiation, and any controlled-substance flow require connectivity — explicit offline
+  states are shown.
 
-### B.5 What is NOT offline in v1
-- Real-time queue position, video telemedicine, payment initiation, and any
-  controlled-substance flow require connectivity. They show explicit offline states.
+### B.5 Future option (not in v1)
+- Selective offline writes for specific **low-risk, non-clinical** convenience actions
+  (e.g. an appointment *request*, a personal vitals-diary entry) MAY be added later —
+  explicitly per action, with conflict surfacing — never as a default, never for
+  clinical/financial/safety mutations.
 
-### B.6 Testing the offline engine
-- Airplane-mode Maestro scripts: cache render, queue a booking offline, reconnect, assert
-  single server-side effect (idempotency proven), assert conflict path on a forced
-  server-state change.
+### B.6 Testing
+- Pure-logic: AES codec round-trip/tamper/wrong-key (jest, green).
+- Maestro (device): cache renders offline; an add/edit/delete attempt while offline is
+  **blocked** with the reconnect prompt; the same action succeeds once online.

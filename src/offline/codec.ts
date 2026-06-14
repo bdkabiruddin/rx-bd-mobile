@@ -6,8 +6,8 @@
 //
 // The production codec is AES-256-GCM (see `aesCodec.ts`) with the key from
 // `encryptionKey.ts` (held in the device secure enclave). Operations are
-// async because Web Crypto's SubtleCrypto is async; cache/outbox writes are
-// already async so this is transparent to callers.
+// async because Web Crypto's SubtleCrypto is async; cache writes are already
+// async so this is transparent to callers.
 
 export interface Codec {
   encrypt(plaintext: string): Promise<string>;

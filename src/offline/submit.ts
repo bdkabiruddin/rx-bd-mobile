@@ -1,39 +1,43 @@
-// submitCommand — the write path. Send now when online; on a transient
-// failure or while offline, enqueue to the durable outbox for replay. The
-// command's stable Idempotency-Key guarantees exactly-once at the server.
+// submitWrite — the write path. ONLINE-ONLY by design.
+//
+// Add / edit / delete require a live connection: if offline, the action is
+// refused with a clear OFFLINE result so the UI can ask the user to reconnect
+// — it is NEVER queued. This eliminates the silent-loss risks of a deferred
+// write queue (a queued mutation rejected on later sync, or wiped on session
+// revoke). Reads still work offline from the encrypted cache; only mutations
+// require connectivity.
+//
+// The Idempotency-Key is still attached so that a mid-request network drop
+// followed by a user retry cannot double-apply at the server.
 
 import { request } from '@/api/client';
-import { type Result, isRetryable, ok } from '@/api/errors';
+import { type Result, fail } from '@/api/errors';
+import { newIdempotencyKey } from '@/api/idempotency';
 
 import { isOnline } from './connectivity';
-import { enqueue, type OutboxCommand } from './outbox';
 
-export interface SubmitResult {
-  /** True when the command was queued for later instead of applied now. */
-  queued: boolean;
-  /** Server payload when applied immediately. */
-  value?: unknown;
+export interface WriteCommand {
+  method: 'POST' | 'PATCH' | 'PUT' | 'DELETE';
+  path: string;
+  body?: unknown;
+  /** Reverify token for two-key sensitive intents. */
+  reverifyToken?: string;
+  /** Stable idempotency key. Auto-generated when omitted. Reuse the SAME key
+   *  across user-driven retries of one logical action so retries are safe. */
+  idempotencyKey?: string;
 }
 
-export async function submitCommand(
-  cmd: OutboxCommand,
-): Promise<Result<SubmitResult>> {
-  if (isOnline()) {
-    const res = await request(cmd.path, {
-      method: cmd.method,
-      body: cmd.body,
-      idempotencyKey: cmd.id,
-      ...(cmd.reverifyToken ? { reverifyToken: cmd.reverifyToken } : {}),
+export async function submitWrite<T>(cmd: WriteCommand): Promise<Result<T>> {
+  if (!isOnline()) {
+    return fail({
+      code: 'OFFLINE',
+      message: 'You are offline. Reconnect to make changes.',
     });
-    if (res.ok) return ok({ queued: false, value: res.value });
-    if (isRetryable(res.error)) {
-      await enqueue(cmd);
-      return ok({ queued: true });
-    }
-    // Permanent failure — surface to caller; do NOT queue.
-    return res;
   }
-
-  await enqueue(cmd);
-  return ok({ queued: true });
+  return request<T>(cmd.path, {
+    method: cmd.method,
+    body: cmd.body,
+    idempotencyKey: cmd.idempotencyKey ?? newIdempotencyKey(),
+    ...(cmd.reverifyToken ? { reverifyToken: cmd.reverifyToken } : {}),
+  });
 }

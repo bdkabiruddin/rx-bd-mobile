@@ -1,0 +1,38 @@
+# Offline → reads work from cache, but add/edit/delete are BLOCKED.
+# Proves the online-only write policy (no queue, no silent loss).
+appId: bd.rx.patient
+env:
+  RXBD_TEST_EMAIL: ${RXBD_TEST_EMAIL}
+  RXBD_TEST_PASSWORD: ${RXBD_TEST_PASSWORD}
+---
+- launchApp:
+    clearState: false
+- assertVisible: 'Upcoming appointments'
+
+# Go offline (airplane mode via the test harness / adb).
+- setAirplaneMode: enabled
+
+# Reads still work: cached data + offline banner.
+- assertVisible: 'Offline'
+- assertVisible: 'Upcoming appointments'
+
+# Attempt a write (book) while offline → BLOCKED with a reconnect prompt,
+# NOT queued. (IDs map to the Phase-2 patient booking screen.)
+- tapOn:
+    id: 'book-appointment'
+- tapOn:
+    id: 'confirm-booking'
+- assertVisible: 'Reconnect to make changes'
+# Nothing is queued — no "pending sync" state exists.
+- assertNotVisible: 'Pending sync'
+
+# Reconnect → the same action now succeeds.
+- setAirplaneMode: disabled
+- extendedWaitUntil:
+    visible: 'Live'
+    timeout: 20000
+- tapOn:
+    id: 'book-appointment'
+- tapOn:
+    id: 'confirm-booking'
+- assertVisible: 'Booking confirmed'

@@ -1,0 +1,47 @@
+# rx.bd Mobile — Expo / React Native ignores (scoped to mobile-app/)
+
+# Dependencies
+node_modules/
+.pnp.*
+.yarn/*
+
+# Expo
+.expo/
+.expo-shared/
+dist/
+web-build/
+
+# Native build artifacts
+android/app/build/
+android/build/
+android/.gradle/
+ios/Pods/
+ios/build/
+*.xcworkspace/xcuserdata/
+*.keystore
+!debug.keystore
+
+# EAS
+.easignore.local
+
+# Env & secrets (never commit signing keys, API secrets, service-account JSON)
+.env
+.env.*
+!.env.example
+google-services.json
+GoogleService-Info.plist
+*.p8
+*.p12
+*.mobileprovision
+
+# Metro / bundler caches
+.metro-health-check*
+*.tsbuildinfo
+
+# Test / coverage
+coverage/
+.maestro/
+*.log
+
+# OS
+.DS_Store

@@ -6,6 +6,7 @@ import { type Result, ok } from '@/api/errors';
 import { wipeAllLocalData } from '@/offline/wipe';
 
 import { decodeAccessClaims } from './jwt';
+import { establishSessionFromTokens } from './session-helpers';
 import { refreshTokens } from './refresh';
 import { secureStore } from './secureStore';
 import { useSession } from './sessionStore';
@@ -32,23 +33,6 @@ export function configureAuthBridge(): void {
   });
 }
 
-/** Persist tokens + seed session context from the access-token claims.
- *  (Claims are for routing; the server re-authorizes every request.) */
-async function establishSession(
-  accessToken: string,
-  refreshToken: string,
-  mfaSatisfied: boolean,
-): Promise<void> {
-  await secureStore.setTokens(accessToken, refreshToken);
-  const claims = decodeAccessClaims(accessToken);
-  useSession.getState().setActive(accessToken, {
-    role: claims?.role ?? '',
-    activeBranchId: claims?.branchId ?? null,
-    activeDepartmentId: claims?.departmentId ?? null,
-    mfaSatisfied,
-  });
-}
-
 /** Password login. Returns `{ mfaRequired }`; if true, call `verifyMfa`. */
 export async function login(
   identifier: string,
@@ -69,7 +53,7 @@ export async function login(
     return ok({ mfaRequired: true });
   }
 
-  await establishSession(data.accessToken, data.refreshToken, true);
+  await establishSessionFromTokens(data.accessToken, data.refreshToken, true);
   return ok({ mfaRequired: false });
 }
 
@@ -77,7 +61,7 @@ export async function login(
 export async function verifyMfa(code: string): Promise<Result<void>> {
   const res = await api.post<LoginResponse>('/api/v1/auth/mfa/verify', { code });
   if (!res.ok) return res;
-  await establishSession(res.value.accessToken, res.value.refreshToken, true);
+  await establishSessionFromTokens(res.value.accessToken, res.value.refreshToken, true);
   return ok(undefined);
 }
 

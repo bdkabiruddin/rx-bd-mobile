@@ -77,6 +77,12 @@ export default function LoginScreen(): React.ReactElement {
           loading={busy}
           disabled={!identifier || !password}
         />
+
+        <Button
+          title={t({ en: 'Sign in with phone', bn: 'ফোন দিয়ে সাইন ইন' })}
+          variant="ghost"
+          onPress={() => router.push('/(auth)/phone')}
+        />
       </View>
     </ScreenScaffold>
   );

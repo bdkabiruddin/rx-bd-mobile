@@ -1,0 +1,68 @@
+# Patient profile / allergies / privacy — summary with masked identifiers,
+# the allergy form's client-side gate, and the DSAR center's honest wording.
+# Assumes a signed-in, unlocked session (run after 01-login-unlock-phi).
+appId: bd.rx.patient
+---
+- launchApp:
+    clearState: false
+- assertVisible: 'Upcoming appointments'
+
+# More tab → profile hub.
+- tapOn: 'More'
+- tapOn: 'Profile & privacy'
+- assertVisible: 'My profile'
+- assertVisible: 'Emergency contacts'
+
+# Allergies — clinical-safety surface.
+- tapOn:
+    id: 'profile-allergies-link'
+- assertVisible: 'My allergies'
+
+# Add-allergy form refuses a submit without an allergen (no fake success).
+- tapOn:
+    id: 'add-allergy'
+- assertVisible: 'Severity'
+- tapOn:
+    id: 'severity-SEVERE'
+- scrollUntilVisible:
+    element:
+      id: 'save-allergy'
+    direction: DOWN
+- tapOn:
+    id: 'save-allergy'
+- assertVisible: 'Allergen is required'
+
+# Fill the allergen and record it.
+- tapOn:
+    id: 'allergy-allergen'
+- inputText: 'Penicillin'
+- tapOn:
+    id: 'save-allergy'
+- assertVisible: 'Allergy recorded'
+
+# Back to the hub, then the privacy / DSAR center.
+- back
+- tapOn:
+    id: 'profile-privacy-link'
+- assertVisible: 'Privacy & data rights'
+- assertVisible: 'My requests'
+
+# Erasure asks for explicit confirmation with the irreversibility warning —
+# cancel out (never file a destructive request from an automated flow).
+- scrollUntilVisible:
+    element:
+      id: 'dsar-erasure'
+    direction: DOWN
+- tapOn:
+    id: 'dsar-erasure'
+- assertVisible: 'Permanently erase your data?'
+- tapOn: 'Cancel'
+
+# Access log loads lazily on demand (the toggle flips to "Hide…").
+- scrollUntilVisible:
+    element:
+      id: 'toggle-access-log'
+    direction: DOWN
+- tapOn:
+    id: 'toggle-access-log'
+- assertVisible: 'Hide access log'

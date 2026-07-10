@@ -1,0 +1,35 @@
+# Patient billing — More hub → my bills list → bill detail with
+# payments + outstanding balance. VIEW-ONLY: asserts no pay button.
+# Assumes a signed-in, unlocked session (run after 01-login-unlock-phi).
+appId: bd.rx.patient
+---
+- launchApp:
+    clearState: false
+- assertVisible: 'Upcoming appointments'
+
+# More tab → billing entry.
+- tapOn: 'More'
+- tapOn: 'Bills & payments'
+
+# Bills list renders with an honest state (rows or the empty state —
+# never fabricated content).
+- assertVisible: 'My bills'
+
+# Open the first bill when the seed data provides one; the detail
+# screen shows the summary, items and the payments-received section.
+- runFlow:
+    when:
+      visible:
+        id: 'invoice-row-.*'
+    commands:
+      - tapOn:
+          id: 'invoice-row-.*'
+          index: 0
+      - assertVisible: 'Bill details'
+      - scrollUntilVisible:
+          element:
+            text: 'Payments received'
+          direction: DOWN
+      # Phase 2 is view-only — no in-app payment initiation.
+      - assertNotVisible: 'Pay now'
+      - back

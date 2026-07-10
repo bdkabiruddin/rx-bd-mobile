@@ -10,6 +10,10 @@ export type SessionStatus = 'anon' | 'locked' | 'active';
 
 export interface SessionClaims {
   role: string;
+  /** JWT `sub` — the signed-in user's id. For the patient persona this is
+   *  also the id used by `/patients/{id}/*` self-reads. */
+  userId: string | null;
+  tenantId: string | null;
   activeBranchId: string | null;
   activeDepartmentId: string | null;
   mfaSatisfied: boolean;
@@ -36,6 +40,8 @@ export const useSession = create<SessionState>((set) => ({
   status: 'anon',
   accessToken: null,
   role: '',
+  userId: null,
+  tenantId: null,
   activeBranchId: null,
   activeDepartmentId: null,
   mfaSatisfied: false,
@@ -59,6 +65,8 @@ export const useSession = create<SessionState>((set) => ({
       status: 'anon',
       accessToken: null,
       role: '',
+      userId: null,
+      tenantId: null,
       activeBranchId: null,
       activeDepartmentId: null,
       mfaSatisfied: false,
@@ -69,5 +77,7 @@ export const useSession = create<SessionState>((set) => ({
 export const sessionAccess = {
   getAccessToken: (): string | null => useSession.getState().accessToken,
   getRole: (): string => useSession.getState().role,
+  getUserId: (): string | null => useSession.getState().userId,
+  getTenantId: (): string | null => useSession.getState().tenantId,
   getPersona: (): string => personaForRole(useSession.getState().role),
 };

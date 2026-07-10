@@ -15,6 +15,8 @@ export async function establishSessionFromTokens(
   const claims = decodeAccessClaims(accessToken);
   useSession.getState().setActive(accessToken, {
     role: claims?.role ?? '',
+    userId: claims?.sub ?? null,
+    tenantId: claims?.tenantId ?? null,
     activeBranchId: claims?.branchId ?? null,
     activeDepartmentId: claims?.departmentId ?? null,
     mfaSatisfied,

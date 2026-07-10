@@ -76,6 +76,8 @@ export async function hydrateSession(): Promise<void> {
   const claims = decodeAccessClaims(access);
   useSession.getState().setActive(access, {
     role: claims?.role ?? '',
+    userId: claims?.sub ?? null,
+    tenantId: claims?.tenantId ?? null,
     activeBranchId: claims?.branchId ?? null,
     activeDepartmentId: claims?.departmentId ?? null,
     mfaSatisfied: true,

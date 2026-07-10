@@ -1,0 +1,33 @@
+# Patient live queue position — entry from home, live view or the honest
+# not-in-queue empty state. Assumes a signed-in, unlocked patient session
+# (run 01 first in the suite).
+appId: bd.rx.patient
+---
+- launchApp
+
+# Home → live queue entry (footer button on the upcoming-appointments list;
+# falls back to the empty-state path when there are no appointments).
+- assertVisible: 'Upcoming appointments'
+- runFlow:
+    when:
+      visible: 'Live queue position'
+    commands:
+      - tapOn: 'Live queue position'
+      - assertVisible: 'Live queue'
+
+      # Either the live position card or the honest empty state renders —
+      # never a spinner forever, never fabricated data.
+      - runFlow:
+          when:
+            visible: "You're not in a queue right now"
+          commands:
+            - assertVisible: 'Go back'
+            - tapOn: 'Go back'
+            - assertVisible: 'Upcoming appointments'
+      - runFlow:
+          when:
+            visible: 'Your position'
+          commands:
+            - assertVisible: 'Updates automatically every 20 seconds.'
+            - back
+            - assertVisible: 'Upcoming appointments'

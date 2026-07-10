@@ -1,0 +1,40 @@
+# Patient notifications — inbox (list or honest empty state) and the
+# preferences screen (digest mode, quiet hours, event-type matrix,
+# channel opt-out). Assumes a signed-in, unlocked patient session
+# (run 01 first in the suite).
+appId: bd.rx.patient
+---
+- launchApp
+
+# Home → More tab → Notifications.
+- assertVisible: 'Upcoming appointments'
+- tapOn: 'More'
+- assertVisible: 'Notifications'
+- tapOn: 'Notifications'
+- assertVisible: 'Notifications'
+
+# Either real rows or the honest empty state — never fabricated data.
+- runFlow:
+    when:
+      visible: 'No notifications yet'
+    commands:
+      - assertVisible: 'Updates about your appointments, medicines and results will appear here.'
+
+# Preferences screen.
+- tapOn: 'Preferences'
+- assertVisible: 'Notification preferences'
+- assertVisible: 'Email digest'
+- assertVisible: 'Quiet hours'
+
+# Scroll to the consent surfaces (matrix + TCPA channel opt-out).
+- scrollUntilVisible:
+    element:
+      text: 'Event type preferences'
+- assertVisible: 'Always on'
+- scrollUntilVisible:
+    element:
+      text: 'Channel opt-out'
+
+# Back out to the inbox.
+- back
+- assertVisible: 'Notifications'

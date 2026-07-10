@@ -1,0 +1,43 @@
+# Patient vitals diary — history + add-reading form with the mirrored
+# plausibility gate refusing impossible values (no fake success).
+# Assumes a signed-in, unlocked session (run after 01-login-unlock-phi).
+appId: bd.rx.patient
+---
+- launchApp:
+    clearState: false
+- assertVisible: 'Upcoming appointments'
+
+# Records tab → vitals diary.
+- tapOn: 'Records'
+- assertVisible: 'Vitals diary'
+- tapOn: 'Vitals diary'
+- assertVisible: 'Add reading'
+
+# Add-reading form (blood pressure is preselected).
+- tapOn:
+    id: 'add-vital'
+- assertVisible: 'Reading type'
+
+# Range gate refuses an impossible systolic value client-side.
+- tapOn:
+    id: 'vital-value'
+- inputText: '400'
+- tapOn:
+    id: 'vital-secondary'
+- inputText: '80'
+- scrollUntilVisible:
+    element:
+      id: 'save-vital'
+    direction: DOWN
+- tapOn:
+    id: 'save-vital'
+- assertVisible: 'Outside the accepted range.*'
+
+# A corrected, plausible reading passes the client gate (server persists it).
+- tapOn:
+    id: 'vital-value'
+- eraseText
+- inputText: '120'
+- tapOn:
+    id: 'save-vital'
+- assertVisible: 'Reading saved'

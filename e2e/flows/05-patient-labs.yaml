@@ -1,0 +1,33 @@
+# Patient labs — records hub → lab orders list → order detail + results.
+# Assumes a signed-in, unlocked session (run after 01-login-unlock-phi).
+appId: bd.rx.patient
+---
+- launchApp:
+    clearState: false
+- assertVisible: 'Upcoming appointments'
+
+# Records tab → labs entry.
+- tapOn: 'Records'
+- assertVisible: 'Health records'
+- tapOn: 'Lab results'
+
+# Orders list renders with an honest state (rows or the empty state —
+# never fabricated content).
+- assertVisible: 'My lab tests'
+
+# Open the first order when the seed data provides one; the detail
+# screen shows the order summary and the released-results section.
+- runFlow:
+    when:
+      visible:
+        id: 'lab-order-row-.*'
+    commands:
+      - tapOn:
+          id: 'lab-order-row-.*'
+          index: 0
+      - assertVisible: 'Lab order'
+      - scrollUntilVisible:
+          element:
+            text: 'Results'
+          direction: DOWN
+      - back

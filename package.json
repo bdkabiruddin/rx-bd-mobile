@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "jest",
-    "api:generate": "openapi-typescript ../openapi.yaml -o src/api/generated/schema.ts",
+    "api:generate": "openapi-typescript openapi.yaml -o src/api/generated/schema.ts",
     "tokens:generate": "node scripts/generate-tokens.mjs",
     "android": "expo run:android",
     "ios": "expo run:ios",

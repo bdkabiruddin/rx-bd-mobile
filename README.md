@@ -1,38 +1,30 @@
-# rx.bd Mobile — `mobile-app/`
+# rx.bd Mobile
 
 Enterprise-grade **React Native + Expo (TypeScript)** mobile application for the rx.bd
 healthcare platform. Targets **Android phone + Android tablet + iPad**, bilingual
 (English / বাংলা), offline-tolerant for Bangladeshi network conditions, and built to the
 same compliance bar as the web platform (HIPAA technical safeguards, GDPR DSAR, BMDC/DGHS).
 
-> **This folder is isolated.** Everything mobile lives under `mobile-app/`. It has its own
-> `package.json`, its own toolchain, and its own `node_modules`. It is NOT part of the
-> Next.js web build and must never be imported by `src/`.
+> **Standalone repository.** This repo was extracted (with full history) from the
+> `mobile-app/` folder of the main `rx-bd` monorepo on 2026-07-11. The Next.js web
+> platform + API live in `rx-bd`; this repo contains ONLY the mobile app.
 
 ---
 
 ## The two hard workflow rules (read first)
 
-1. **The `mobile-app` branch never merges into `main`.**
-   It is a long-lived development branch. To stay current it *pulls from* `main`
-   (`git merge origin/main`) — it never pushes back. Mobile code only ever exists on the
-   `mobile-app` branch, under this folder.
+1. **The backend API contract is mirrored here as `openapi.yaml`.**
+   It is a SNAPSHOT copied from the `rx-bd` repo root (`npm run api:generate` builds the
+   typed client from it). When the backend contract changes in `rx-bd`, re-copy the file
+   here and regenerate. Never hand-edit the snapshot.
 
-2. **Any backend change the mobile app needs goes through `main` on its own branch.**
+2. **Any backend change the mobile app needs goes through the `rx-bd` repo's `main`.**
    If the app needs a new/changed `/api/v1/*` endpoint, a new push field, a CORS origin,
-   etc., that work is done on a **separate feature branch cut from the latest `main`**,
-   reviewed, and merged to `main` the normal way. The mobile branch then pulls it down.
-   Backend changes never live on the `mobile-app` branch. See
+   etc., that work is done in `rx-bd` on a feature branch cut from its latest `main`,
+   reviewed, and merged there the normal way. Then the `openapi.yaml` snapshot here is
+   refreshed. Backend code never lives in this repo. See
    [`docs/07-backend-change-protocol.md`](docs/07-backend-change-protocol.md).
 
-```
-main ──────●───────●───────────●──────────────●─────────►   (web + API, source of truth)
-            \       ↑ merge      ↑ merge        ↑
-             \   feat/mobile-  feat/mobile-   feat/...      (backend tasks for mobile)
-              \  push-fields   cors-origins
-               \
-   mobile-app ──●──────●(pull)──────●(pull)──────●(pull)─►   (RN/Expo app; never merges up)
-```
 
 ---
 

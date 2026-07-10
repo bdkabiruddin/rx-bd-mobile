@@ -127,3 +127,123 @@ Backend stays unchanged so far. Any backend need that surfaces during
 integration goes through `docs/07-backend-change-protocol.md` (separate
 branch → main), e.g. confirming the MFA interim-token contract and the
 push deep-link payload fields.
+
+---
+
+# Phase 2 progress (2026-07-10) — patient persona complete; doctor 4/6
+
+Built as a 16-workstream parallel build; 12 workstreams completed before an
+owner-requested stop. Whole-project gates green at this point:
+**tsc 0 errors · eslint 0 · jest 264/264 across 16 suites.** Every endpoint
+used was verified against `openapi.yaml` and its payload shape mirrored from
+the backend module source; where the contract fell short the feature ships
+the honest subset and the miss is recorded below (no invented endpoints, no
+fabricated data anywhere).
+
+## Landed
+
+**Shell additions** — session claims now carry `userId` (JWT `sub`) +
+`tenantId`; patient/doctor tab navigators + hub screens; shared primitives
+`ListRow`, `StatusPill`, `SectionHeader`, `TextField`, and the tablet
+contract `useBreakpoint` + `MasterDetail`.
+
+**Patient (all 8 features)**
+| Feature | Screens | Notes |
+|---|---|---|
+| Appointments | list (upcoming/past), detail, cancel/reschedule, 4-step booking | doctor discovery is specialty-driven (no name-search endpoint) |
+| Meds | prescriptions list/detail, current medications, reminders | reminders are POST-upsert keyed on prescriptionId |
+| Labs | orders list, detail + released results | patient ack omitted (endpoint is doctor-gated) |
+| Vitals diary | day-grouped history, add-reading with plausibility bands | celsius/mg-dL pinned (backend bands are unit-agnostic) |
+| Live queue | 20s focus-scoped poll, chamber discovery chain | walk-ins not discoverable (no /me/queue-positions) |
+| Notifications | inbox + read, preferences/quiet-hours/opt-outs | opt-out registry is one-way by design |
+| Profile + DSAR | summary, edit (MPI duplicate notice), allergies, privacy/DSAR + access log | identifiers masked client-side |
+| Billing | invoices list/detail, payments, balance — view-only | no invoiceNumber/facility name on the wire |
+
+**Doctor (4 of 6 features)**
+| Feature | Screens | Notes |
+|---|---|---|
+| Today + schedule | landing, weekly/recurring/blocks management | "Remaining appointments today" (no full-day endpoint) |
+| Chamber queue | live 15s poll, call-next / complete / no-show | 2 requests/tick (no combined projection); skip unsupported server-side |
+| Patients | id-search + panel, allergies-first summary bundle, tablet master-detail | list rows initials-only by PHI design |
+| Prescribe + e-sign | allergy banner, item composer, templates, dry-run interlock, draft→two-key sign | blocking findings block sign — no client override path (safetyOverride deliberately not implemented) |
+
+## Not built (stopped before start)
+- **Doctor referrals + medical certificates** (partial files removed cleanly).
+- **Doctor lab orders + results inbox.**
+- **Push deep-linking** — Phase-1 token registration (`src/push/register.ts`)
+  stands; notification-tap → route mapping was never started.
+- Doctor-queue tablet master-detail adoption (small follow-up now that
+  `MasterDetail` exists).
+
+## Shared-seam follow-ups
+- `src/i18n/formatters.ts`: add a Dhaka time-only `formatTime` — three
+  features shipped local copies pending consolidation.
+- `src/auth/reverifiedAction.ts`: optional body-token field (e.g.
+  `tokenBodyField`) for `enforcedInHandler` sign-style routes;
+  prescribe composes the identical flow feature-locally today.
+- `e2e/flows/02-offline-writes-blocked.yaml`: booking choreography needs the
+  4-step wizard steps (screens expose the expected testIDs already).
+
+## Backend needs discovered (doc-07 candidates)
+Verified against backend source during the build; each goes to `main` on its
+own branch per `docs/07-backend-change-protocol.md`.
+
+**Spec / contract mismatches**
+1. `POST /auth/reverify` is implemented and used but **missing from
+   `openapi.yaml`**.
+2. `POST /prescriptions/{id}/sign` takes `reverifyToken` in the **body**
+   while the platform convention is the `x-reverify-token` header.
+3. `POST /me/refills/reorder` accepts source status `COMPLETED|EXPIRED`, but
+   `COMPLETED` is not a `PrescriptionStatus` member — `DISPENSED` courses can
+   never be reordered.
+4. Web `QueuePositionWidget` gates on `facilityType === 'CHAMBER'`, which is
+   absent from `AppointmentFacilityType` — likely never fires for
+   standalone-chamber bookings (same ambiguity found from mobile).
+5. `GET /me/allergies` applies the TREATMENT consent gate to the patient's
+   own self-read (unlike `GetMyPatientProfile`'s self-bypass) — a fresh
+   patient can 403 on their own allergy list.
+
+**Display-name / projection gaps** (rows can't show names without N+1)
+6. Prescription list/detail: no prescriber display name (`prescribingDoctorUserId` only).
+7. Doctor appointment projections: no patient display name; no chamber/room name.
+8. `GET /appointments/{id}`: detail omits the resolved doctorName/chamberName the list has.
+9. `PrescriptionListView`: metadata-only — no drug names/summary for either persona.
+10. Lab orders: no ordering-doctor or centre display names; patient results
+    don't project the doctor's `doctorNote`.
+11. Invoices: no human-readable `invoiceNumber`, no facility/branch name.
+12. Prescription templates: items carry ids only — applying a template forces
+    a full drug-catalog fetch to resolve names.
+
+**Missing endpoints / operations**
+13. No patient-facing `GET /me/queue-positions` (active entries + chamber
+    ids) — the queue screen fans out up to 10 discovery requests/tick and
+    cannot discover walk-ins.
+14. No combined doctor-queue projection (now-serving + ready + chamber name).
+15. No skip / return-to-queue queue transition (IN_CONSULTATION → DOCTOR_READY).
+16. No DELETE/unblock for `doctor_schedule_blocks`; recurring schedule write
+    is whole-set replace.
+17. No patient amend/delete for own vitals despite the AMENDED domain status.
+18. No patient-readable single lab-order GET; patient result-acknowledge
+    endpoint absent (doctor-only today).
+19. No doctor name/phone patient-search surface (HMAC `_hash` columns exist;
+    handler matches patientId substrings only).
+20. No free-text doctor search for booking (specialty-driven only).
+21. No mark-all-read for notifications; no self-service opt-in restore
+    (append-only registry); notification content is single-language.
+22. No masked server projection for `GET /me/patient-profile`
+    (nationalId/birthRegNo/healthId arrive decrypted; app masks client-side).
+23. `GET /patients/{id}/appointments` lacks date/status filters (cap 200).
+24. Vitals plausibility bands are unit-agnostic (°F / mmol/L can never pass).
+25. Deferred backend crons noted on routes: medication-reminder delivery
+    (RT-343), notification digests (RT-313); reminder schedules manage-only
+    until they ship.
+
+**Deferred client capabilities (need product/backend decisions)**
+26. Prescription PDF download/share (authenticated binary pipeline).
+27. `signatureProof` initials-capture for prescription sign (R-90 phase-1
+    evidence recipe documented in the sign schema).
+28. Dry-run `patientContext` (pregnancy/G6PD/renal/hepatic) + lactation not
+    collected on mobile — server fail-closed UNKNOWN keeps previews
+    conservative.
+29. Reminders for OTC/self-recorded medications (no sourcePrescriptionId).
+30. Patient-facing MPI duplicate follow-up (link/merge is admin-only).

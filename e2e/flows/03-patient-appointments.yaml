@@ -1,0 +1,34 @@
+# Patient appointments — list segments, booking wizard entry, detail.
+# Assumes a signed-in, unlocked patient session (run 01 first in the suite).
+appId: bd.rx.patient
+---
+- launchApp
+
+# Appointments tab → list with segments.
+- tapOn: 'Appointments'
+- assertVisible: 'Appointments'
+- assertVisible: 'Upcoming'
+- assertVisible: 'Past'
+
+# Past segment renders (rows or the honest empty state).
+- tapOn: 'Past'
+- tapOn: 'Upcoming'
+
+# Booking wizard opens on the specialty step.
+- tapOn: 'Book appointment'
+- assertVisible: 'Choose a specialty'
+
+# Wizard step navigation back to the list.
+- tapOn: 'Back'
+- assertVisible: 'Appointments'
+
+# Open the first appointment's detail when one exists.
+- runFlow:
+    when:
+      notVisible: 'No upcoming appointments'
+    commands:
+      - tapOn:
+          index: 0
+          below: 'Upcoming'
+      - assertVisible: 'Appointment details'
+      - back

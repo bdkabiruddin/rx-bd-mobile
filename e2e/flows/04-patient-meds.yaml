@@ -1,0 +1,36 @@
+# Patient meds — prescriptions list + current medications + reminders.
+# Assumes a signed-in, unlocked session (run after 01-login-unlock-phi).
+appId: bd.rx.patient
+---
+- launchApp:
+    clearState: false
+- assertVisible: 'Upcoming appointments'
+
+# Meds tab → prescriptions + current medications sections render.
+- tapOn: 'Meds'
+- assertVisible: 'My prescriptions'
+- scrollUntilVisible:
+    element:
+      text: 'Current medications'
+    direction: DOWN
+
+# Reminders manager.
+- scrollUntilVisible:
+    element:
+      id: 'open-reminders'
+    direction: DOWN
+- tapOn:
+    id: 'open-reminders'
+- assertVisible: 'Medication reminders'
+- scrollUntilVisible:
+    element:
+      text: 'Set a reminder'
+    direction: DOWN
+
+# Reminder form validates the time format honestly (no fake success).
+- tapOn:
+    id: 'reminder-time-input'
+- inputText: '99:99'
+- tapOn:
+    id: 'reminder-add-time'
+- assertVisible: 'Enter a valid time like 08:00.'

@@ -4,6 +4,7 @@
 import { api, configureApiAuth, request } from '@/api/client';
 import { type Result, ok } from '@/api/errors';
 import { wipeAllLocalData } from '@/offline/wipe';
+import { deregisterCurrentPush } from '@/push/register';
 
 import { decodeAccessClaims } from './jwt';
 import { establishSessionFromTokens } from './session-helpers';
@@ -96,6 +97,9 @@ export function maybeLockOnResume(now: number = Date.now()): void {
 
 /** Hard logout: revoke server session (best-effort), clear tokens, wipe data. */
 export async function hardLogout(): Promise<void> {
+  // Deregister this device's push token while the bearer is still valid —
+  // a signed-out device must not keep receiving PHI-adjacent notifications.
+  await deregisterCurrentPush().catch(() => undefined);
   // Best-effort server-side revoke; ignore result (we wipe regardless).
   await request('/api/v1/auth/logout', { method: 'POST' }).catch(() => undefined);
   useSession.getState().clear();

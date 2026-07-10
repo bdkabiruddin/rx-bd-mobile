@@ -1,0 +1,89 @@
+# Doctor lab orders + results inbox — the unseen-result risk surface.
+# The Orders tab must always show the Results inbox link (with an honest
+# count / honest failure note), the New-order entry point, and only
+# honest list states — never fabricated rows. Assumes a signed-in,
+# unlocked DOCTOR session in the staff flavor (run 01 first in the suite).
+appId: bd.rx.staff
+---
+- launchApp
+
+# Orders tab → index: inbox link + new-order CTA + authored-orders list.
+- tapOn: 'Orders'
+- assertVisible: 'Lab orders'
+- assertVisible:
+    id: 'orders-inbox-link'
+- assertVisible: 'Results inbox'
+- assertVisible:
+    id: 'new-order'
+
+# One of three honest list states renders: empty, populated, or error+retry.
+- runFlow:
+    when:
+      visible: 'No lab orders yet'
+    commands:
+      - assertVisible: 'Lab orders you place will appear here.'
+
+# ── New order — patient picker is consent-scoped and honest ──────────────
+- tapOn:
+    id: 'new-order'
+- assertVisible: 'New lab order'
+- assertVisible: 'Patient'
+
+# No route param on this entry: the panel search must be shown, and a
+# nonsense query must return the honest no-results state.
+- tapOn:
+    id: 'patient-search'
+- inputText: 'zzzzzzzz'
+- assertVisible: 'No matching patients'
+- eraseText
+- hideKeyboard
+
+# Order form stays hidden until a patient is chosen (draft isolation).
+- assertNotVisible:
+    id: 'place-order'
+- assertVisible: 'Select a patient to start the order.'
+
+# Back to the Orders tab root via the screen's own affordance.
+- tapOn: 'Back'
+- assertVisible: 'Lab orders'
+
+# ── Results inbox — the priority surface ─────────────────────────────────
+- tapOn:
+    id: 'orders-inbox-link'
+- assertVisible: 'Results inbox'
+- assertVisible: 'Results on orders you placed. Critical reports are listed first.'
+
+# Honest empty state when nothing awaits review.
+- runFlow:
+    when:
+      visible: 'No results to review'
+    commands:
+      - assertVisible: 'New lab reports on your orders will appear here.'
+
+# When a result row exists, open it: the detail must show the values
+# section (or the honest can't-display notice) and the acknowledge flow.
+- runFlow:
+    when:
+      visible:
+        id: 'inbox-row-.*'
+    commands:
+      - tapOn:
+          id: 'inbox-row-.*'
+          index: 0
+      - assertVisible:
+          id: 'result-detail'
+      - assertVisible: 'Result values'
+      # Acknowledge is confirm-gated; cancel keeps the result in the inbox.
+      # (The button is absent when the server already recorded an ack.)
+      - runFlow:
+          when:
+            visible:
+              id: 'ack-result'
+          commands:
+            - tapOn:
+                id: 'ack-result'
+            - assertVisible: 'Acknowledge this result?'
+            - tapOn: 'Cancel'
+      - tapOn:
+          id: 'result-back'
+      - assertVisible: 'Results inbox'

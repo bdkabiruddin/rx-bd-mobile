@@ -1,0 +1,56 @@
+# Doctor referrals + medical certificates (issue, list, cancel).
+# Assumes a signed-in, unlocked DOCTOR session (run 01 first with doctor
+# credentials — the persona router lands DOCTOR on the Today tab).
+appId: bd.rx.patient
+---
+- launchApp
+
+# Into the More hub, then the referrals list (hidden tab route).
+- tapOn: 'More'
+- assertVisible: 'Referrals'
+- tapOn: 'Referrals'
+- assertVisible: 'New referral'
+
+# New referral form — local validation is honest: with no patient selected
+# the issue attempt is rejected before anything is sent.
+- tapOn:
+    id: 'new-referral'
+- assertVisible: 'Search by patient ID'
+- assertVisible: 'Referral type'
+- tapOn:
+    id: 'referral-reason'
+- inputText: 'Assessment of exertional chest pain'
+- hideKeyboard
+- tapOn:
+    id: 'issue-referral'
+- assertVisible: 'Select the patient this referral is for.'
+
+# Back to the list (rows or the honest empty state), then out.
+- tapOn: 'Back'
+- assertVisible: 'Referrals'
+- tapOn: 'Back'
+
+# Medical certificates list.
+- tapOn: 'More'
+- tapOn: 'Medical certificates'
+- assertVisible: 'New certificate'
+
+# New certificate form — same honest local gate: the missing patient is
+# rejected before anything is sent (patient is the first check in the
+# validation chain, mirroring buildCertificateBody).
+- tapOn:
+    id: 'new-certificate'
+- assertVisible: 'Certificate type'
+- tapOn:
+    id: 'certificate-reason'
+- inputText: 'Acute febrile illness, rest advised'
+- hideKeyboard
+- tapOn:
+    id: 'issue-certificate'
+- assertVisible: 'Select the patient this certificate is for.'
+
+# Back out to the More hub.
+- tapOn: 'Back'
+- assertVisible: 'Medical certificates'
+- tapOn: 'Back'
+- assertVisible: 'More'

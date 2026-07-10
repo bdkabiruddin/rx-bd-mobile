@@ -26,6 +26,7 @@ import { personaForRole } from '@/config/domain';
 import { evictExpired } from '@/offline/cache';
 import { startConnectivityWatch } from '@/offline/connectivity';
 import { initOfflineSecurity } from '@/offline/init';
+import { registerForPush, usePushDeepLinks } from '@/push/register';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -69,10 +70,23 @@ export default function RootLayout(): React.ReactElement {
 }
 
 function SessionGate(): React.ReactElement {
+  usePushDeepLinks();
   const status = useSession((s) => s.status);
   const role = useSession((s) => s.role);
   const router = useRouter();
   const segments = useSegments();
+
+  // Register the device push token once per signed-in session (permission
+  // prompt + backend upsert); reset on logout so the next user re-registers.
+  const pushRegisteredRef = React.useRef(false);
+  React.useEffect(() => {
+    if (status === 'active' && !pushRegisteredRef.current) {
+      pushRegisteredRef.current = true;
+      void registerForPush();
+    } else if (status === 'anon') {
+      pushRegisteredRef.current = false;
+    }
+  }, [status]);
 
   React.useEffect(() => {
     const group = segments[0]; // e.g. '(auth)', '(patient)'

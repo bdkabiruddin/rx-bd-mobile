@@ -130,11 +130,12 @@ push deep-link payload fields.
 
 ---
 
-# Phase 2 progress (2026-07-10) — patient persona complete; doctor 4/6
+# Phase 2 progress (2026-07-10) — FEATURE-COMPLETE (all 16 workstreams)
 
-Built as a 16-workstream parallel build; 12 workstreams completed before an
-owner-requested stop. Whole-project gates green at this point:
-**tsc 0 errors · eslint 0 · jest 264/264 across 16 suites.** Every endpoint
+Built as a 16-workstream parallel build in two rounds: 12 workstreams in the
+first (owner-paused), the remaining 3 features + integration in a follow-up
+round the same day. Whole-project gates green:
+**tsc 0 errors · eslint 0 · jest 375/375 across 19 suites.** Every endpoint
 used was verified against `openapi.yaml` and its payload shape mirrored from
 the backend module source; where the contract fell short the feature ships
 the honest subset and the miss is recorded below (no invented endpoints, no
@@ -159,21 +160,29 @@ contract `useBreakpoint` + `MasterDetail`.
 | Profile + DSAR | summary, edit (MPI duplicate notice), allergies, privacy/DSAR + access log | identifiers masked client-side |
 | Billing | invoices list/detail, payments, balance — view-only | no invoiceNumber/facility name on the wire |
 
-**Doctor (4 of 6 features)**
+**Doctor (all 6 features)**
 | Feature | Screens | Notes |
 |---|---|---|
 | Today + schedule | landing, weekly/recurring/blocks management | "Remaining appointments today" (no full-day endpoint) |
 | Chamber queue | live 15s poll, call-next / complete / no-show | 2 requests/tick (no combined projection); skip unsupported server-side |
 | Patients | id-search + panel, allergies-first summary bundle, tablet master-detail | list rows initials-only by PHI design |
 | Prescribe + e-sign | allergy banner, item composer, templates, dry-run interlock, draft→two-key sign | blocking findings block sign — no client override path (safetyOverride deliberately not implemented) |
+| Referrals + certificates | issued lists, issue forms (patient picker, chip enums, Dhaka-day serialization), cancel with domain-guard mirror | PATCH cancels, no reverify required (verified); death certificates excluded by design |
+| Lab orders + results inbox | authored orders + unack badge, centre-keyed order creation (test catalog multi-select), inbox with abnormal pills, ack flow, tablet master-detail | inbox has no server ack filter — session-local compensation (gap 31) |
 
-## Not built (stopped before start)
-- **Doctor referrals + medical certificates** (partial files removed cleanly).
-- **Doctor lab orders + results inbox.**
-- **Push deep-linking** — Phase-1 token registration (`src/push/register.ts`)
-  stands; notification-tap → route mapping was never started.
-- Doctor-queue tablet master-detail adoption (small follow-up now that
-  `MasterDetail` exists).
+**Push deep-linking (both personas)** — `routeForNotification` pure route
+table (type/entityId mapping + RT-314 web-path translation, persona-gated,
+whitelist-only), `usePushDeepLinks()` wired first-in-SessionGate (warm taps +
+cold-start, tap held through unlock, dropped on logout, exactly-once);
+`registerForPush()` fires once per active session from the root layout, and
+`hardLogout` deregisters the device token while the bearer is still valid.
+Also fixed pre-existing `deregisterPush` calling a nonexistent
+`DELETE /me/notifications/push-tokens` (real endpoint is action-POST
+`/me/notifications/push-tokens/unregister`).
+
+## Remaining polish (non-blocking)
+- Doctor-queue tablet master-detail adoption (orders inbox + patients have
+  it; queue is a small follow-up).
 
 ## Shared-seam follow-ups
 - `src/i18n/formatters.ts`: add a Dhaka time-only `formatTime` — three
@@ -247,3 +256,36 @@ own branch per `docs/07-backend-change-protocol.md`.
     conservative.
 29. Reminders for OTC/self-recorded medications (no sourcePrescriptionId).
 30. Patient-facing MPI duplicate follow-up (link/merge is admin-only).
+
+**From the follow-up round (referrals/certificates, orders/inbox, push)**
+31. `GET /doctors/me/results-inbox` items carry no acknowledged flag and the
+    handler doesn't filter acknowledged results — mobile compensates with a
+    session-local set of server-confirmed acks, so already-acked results
+    reappear in a fresh session until opened. Add an `acknowledged` flag
+    and/or `?unacknowledged=true` filter.
+32. No `POST /patients/{id}/lab-orders`; creation is centre-keyed
+    `POST /diagnostic-centres/{id}/lab-orders`, forcing a centre pick on
+    mobile (resolved via `/diagnostic-centres/directory`).
+33. Referral form omits `targetFacilityId`: no doctor-scoped facility
+    directory/search endpoint exists to pick one, and the doctor list
+    projection drops the field anyway — destination captured as free-text
+    specialty.
+34. `GET /me/referrals`, `GET /me/medical-certificates`, and
+    `GET /doctors/me/lab-orders` rows carry raw patientId only (the
+    results-inbox and panel projections have initials tokens) — align the
+    projections.
+35. No doctor-side certificate PDF endpoint (patient self-download only).
+36. **No backend PUSH producer populates `PushPayload.data` today** — the
+    only PUSH producer (breach notify) sends title/body without a data
+    block, and the dose-reminder cron stubs its push channel. Deep-link
+    routing is fully wired client-side and activates as soon as producers
+    stamp `{ type, entityId, deepLink }` into push data.
+37. Notification types with no mobile surface resolve to null by design:
+    MESSAGE_RECEIVED (no messages surface), ANC/PNC visit reminders
+    (maternal-care), doctor web-only sections (earnings, CME, refills…).
+38. `queue.entry_called` domain event has no notification consumer (no bell
+    row, no push) — patient queue route mapped proactively.
+39. Cancel endpoints are PATCH (not POST) for referrals + certificates, and
+    the doctor-issued certificate list is `GET /me/medical-certificates`
+    (no collection GET /medical-certificates) — spec navigation trap worth
+    a docs note.

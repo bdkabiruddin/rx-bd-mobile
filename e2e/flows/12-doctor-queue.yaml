@@ -1,0 +1,47 @@
+# Doctor chamber queue — live now-serving card + next-up list with
+# call-next / complete / no-show actions. Assumes a signed-in, unlocked
+# DOCTOR session in the staff flavor (run 01 first in the suite).
+appId: bd.rx.staff
+---
+- launchApp
+
+# Queue tab → live chamber queue screen.
+- tapOn: 'Queue'
+- assertVisible: 'Chamber queue'
+
+# One of three honest states renders — never a spinner forever, never
+# fabricated rows: the no-chamber setup state, the live queue, or the
+# generic error state with a retry.
+- runFlow:
+    when:
+      visible: 'No active chamber'
+    commands:
+      - assertVisible: 'Set up a chamber from the rx.bd web portal to run a live queue.'
+- runFlow:
+    when:
+      visible: 'Next up'
+    commands:
+      - assertVisible: 'Updates automatically every 15 seconds.'
+
+      # Completing the current consultation always confirms first — cancel
+      # must leave the queue untouched (card still shows its actions).
+      - runFlow:
+          when:
+            visible: 'Complete consult'
+          commands:
+            - tapOn: 'Complete consult'
+            - assertVisible: 'Complete this consultation?'
+            - tapOn: 'Cancel'
+            - assertVisible: 'Complete consult'
+            - assertVisible: 'Mark no-show'
+
+      # Call next flips the highest-priority ready patient onto the
+      # now-serving card (only exercised when someone is actually waiting
+      # and no consultation is running, so no confirm dialog interferes).
+      - runFlow:
+          when:
+            visible: 'No patient is in consultation right now.'
+            notVisible: 'No one waiting'
+          commands:
+            - tapOn: 'Call next patient'
+            - assertVisible: 'Complete consult'

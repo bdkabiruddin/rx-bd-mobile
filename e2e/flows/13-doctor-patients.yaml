@@ -1,0 +1,68 @@
+# Doctor patients — consent-gated ID search + patient summary with
+# allergies-first sections. Assumes a signed-in, unlocked DOCTOR session
+# in the staff flavor (run 01 first in the suite).
+appId: bd.rx.staff
+---
+- launchApp
+
+# Patients tab → search + panel list.
+- tapOn: 'Patients'
+- assertVisible: 'Patients'
+- assertVisible: 'Search by patient ID'
+
+# One of three honest list states renders — never fabricated rows: the
+# empty panel, the populated panel, or the generic error state with retry.
+- runFlow:
+    when:
+      visible: 'No patients yet'
+    commands:
+      - assertVisible: 'Patients appear here after their first appointment or prescription with you.'
+
+# A nonsense search must return the honest no-results state (search is
+# consent-gated to the doctor's own panel; nothing is ever invented).
+- tapOn:
+    id: 'Search by patient ID'
+- inputText: 'zzzzzzzz'
+- assertVisible: 'No matching patients'
+- eraseText
+
+# When the panel has at least one patient, open the first row and verify
+# the summary renders with allergies FIRST and prominent, plus the honest
+# per-section states (locked consent sections stay visible, never hidden).
+- runFlow:
+    when:
+      visible: 'My patients'
+      notVisible: 'No patients yet'
+    commands:
+      - runFlow:
+          when:
+            visible: 'Last visit'
+          commands:
+            - tapOn:
+                text: 'Patient .*'
+                index: 0
+            - assertVisible: 'Allergies'
+            # Either real allergy data, the honest empty record, or the
+            # honest locked state — one of them MUST be on screen.
+            - runFlow:
+                when:
+                  visible: 'No allergies recorded'
+                commands:
+                  - assertVisible: 'This does not confirm the patient has no allergies.'
+            - runFlow:
+                when:
+                  visible: 'Access locked'
+                commands:
+                  - assertVisible: 'The patient has not granted consent for this part of their record.'
+            - assertVisible: 'Active conditions'
+            - assertVisible: 'Current medications'
+            - assertVisible: 'Recent vitals'
+            - assertVisible: 'Recent prescriptions'
+            - assertVisible: 'Recent lab orders'
+            # Write CTAs exist only when the record is not DECEASED-locked.
+            - runFlow:
+                when:
+                  notVisible: 'Deceased patient — new clinical entries are locked.'
+                commands:
+                  - assertVisible: 'Prescribe'
+                  - assertVisible: 'New lab order'

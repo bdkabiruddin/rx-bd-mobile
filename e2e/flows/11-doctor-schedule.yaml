@@ -1,0 +1,35 @@
+# Doctor Today (landing) + schedule management.
+# Assumes a signed-in, unlocked DOCTOR session (run 01 first with doctor
+# credentials — the persona router lands DOCTOR on the Today tab).
+appId: bd.rx.patient
+---
+- launchApp
+
+# Today tab renders: header, freshness-capable list area, quick links.
+- assertVisible: 'Today'
+- assertVisible: 'View queue'
+- assertVisible: 'My patients'
+
+# Into schedule management via the quick link.
+- tapOn:
+    id: 'manage-schedule'
+- assertVisible: 'My schedule'
+- assertVisible: 'Weekly schedule'
+- assertVisible: 'Block time off'
+
+# Block form validation is local + honest: a bad start date is rejected
+# before anything is sent.
+- tapOn:
+    id: 'block-start-date'
+- eraseText
+- inputText: 'nonsense'
+- tapOn:
+    id: 'apply-block'
+- assertVisible: 'Enter a valid start date and time (YYYY-MM-DD and HH:MM).'
+
+# Block history section renders (rows or the honest empty state).
+- assertVisible: 'Block history'
+
+# Back to Today.
+- tapOn: 'Back'
+- assertVisible: 'Today'

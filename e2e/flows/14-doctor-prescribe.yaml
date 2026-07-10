@@ -1,0 +1,98 @@
+# Doctor prescribe + e-sign — the interlock must hold end-to-end:
+# allergy banner on top, sign disabled until a dry-run over the current
+# items, biometric two-key step-up before the sign call.
+appId: bd.rx.patient
+env:
+  RXBD_TEST_EMAIL: ${RXBD_TEST_DOCTOR_EMAIL}
+  RXBD_TEST_PASSWORD: ${RXBD_TEST_DOCTOR_PASSWORD}
+  RXBD_TEST_PATIENT_ID: ${RXBD_TEST_PATIENT_ID}
+---
+- launchApp:
+    clearState: true
+- assertVisible: 'Sign in'
+
+# Doctor credentials
+- tapOn:
+    id: 'Email or phone'
+- inputText: ${RXBD_TEST_EMAIL}
+- tapOn:
+    id: 'Password'
+- inputText: ${RXBD_TEST_PASSWORD}
+- tapOn: 'Sign in'
+
+# Biometric unlock if prompted
+- runFlow:
+    when:
+      visible: 'Unlock rx.bd'
+    commands:
+      - assertVisible: 'Unlock rx.bd'
+
+# Deep-link straight into the prescribe surface for the seeded patient.
+- openLink: rxbd://(doctor)/prescribe/${RXBD_TEST_PATIENT_ID}
+
+# The allergy banner is ALWAYS the first thing on the screen.
+- assertVisible: 'Patient allergies'
+
+# Compose one medication row.
+- tapOn:
+    id: 'add-medication'
+- tapOn:
+    id: 'drug-name-0'
+- inputText: 'Paracetamol'
+- tapOn:
+    id: 'strength-0'
+- inputText: '500 mg'
+- tapOn:
+    id: 'dose-0'
+- inputText: '500 mg'
+- tapOn:
+    id: 'freq-0-TID'
+- tapOn:
+    id: 'duration-0'
+- inputText: '5'
+- tapOn:
+    id: 'route-0'
+- inputText: 'oral'
+- tapOn:
+    id: 'diagnosis-codes'
+- inputText: 'J45.20'
+- hideKeyboard
+
+# INTERLOCK: sign stays disabled before the safety check has run.
+- assertVisible:
+    id: 'sign-prescription'
+    enabled: false
+- assertVisible:
+    id: 'sign-block-reason'
+
+# Run the dry-run; the results panel renders every finding honestly.
+- tapOn:
+    id: 'run-dry-run'
+- extendedWaitUntil:
+    visible: 'Safety check'
+    timeout: 15000
+
+# Save the draft (create-or-resume server side).
+- tapOn:
+    id: 'save-draft'
+- extendedWaitUntil:
+    visible: 'Draft saved'
+    timeout: 15000
+- tapOn: 'OK'
+
+# Sign — confirmation dialog, then the biometric two-key step-up.
+- runFlow:
+    when:
+      visible:
+        id: 'sign-prescription'
+        enabled: true
+    commands:
+      - tapOn:
+          id: 'sign-prescription'
+      - assertVisible: 'Sign prescription?'
+      - tapOn: 'Confirm'
+      # Biometric prompt → emulator fingerprint via the harness; success
+      # lands the confirmation dialog.
+      - extendedWaitUntil:
+          visible: 'Prescription signed'
+          timeout: 30000

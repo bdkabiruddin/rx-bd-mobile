@@ -24,7 +24,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-nat
 import type { ApiError } from '@/api/errors';
 import { useCachedQuery } from '@/api/useCachedQuery';
 import { useSession } from '@/auth/sessionStore';
-import { COMMON, formatDate, formatDateTime, useT } from '@/i18n';
+import { COMMON, formatDate, formatDateTime, formatFreshness, useT } from '@/i18n';
 import { Button } from '@/ui/Button';
 import { FreshnessBadge } from '@/ui/FreshnessBadge';
 import { StatusPill } from '@/ui/StatusPill';
@@ -84,6 +84,8 @@ interface SectionQuery {
   refetch: () => void;
   /** True when the section has at least one row to show. */
   hasData: boolean;
+  /** When the shown rows were last fetched — drives per-section freshness. */
+  fetchedAt: number | null;
 }
 
 /** One clinical section: title row + honest state machine + rows. */
@@ -104,8 +106,13 @@ function SummarySection({
   children: React.ReactNode;
 }): React.ReactElement {
   const theme = useTheme();
-  const { t } = useT();
+  const { lang, t } = useT();
   const locked = isConsentDenied(query.error);
+  // Once rows are shown, a lingering `error` means the background refresh failed
+  // over stale cache — surface it so a clinician isn't misled by out-of-date
+  // PHI (e.g. an allergy added elsewhere since the last successful fetch). M7.
+  const showingData = query.hasData && !locked;
+  const refreshFailed = showingData && query.error !== null;
 
   let body: React.ReactNode;
   if (locked) {
@@ -174,6 +181,18 @@ function SummarySection({
         {title}
       </Text>
       {body}
+      {showingData && query.fetchedAt !== null ? (
+        <Text
+          style={[
+            styles.freshness,
+            { color: refreshFailed ? theme.status.warningText : theme.fgSubtle },
+          ]}
+        >
+          {refreshFailed
+            ? `${t(DP_STR.sectionRefreshFailed)} · ${formatFreshness(query.fetchedAt, lang)}`
+            : `${t(DP_STR.sectionUpdated)} ${formatFreshness(query.fetchedAt, lang)}`}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -379,6 +398,7 @@ export function PatientSummary({
           isLoading: allergiesQ.isLoading,
           error: allergiesQ.error,
           refetch: allergiesQ.refetch,
+          fetchedAt: allergiesQ.fetchedAt,
           hasData: hasAllergyData,
         }}
         emptyTitle={t(DP_STR.noAllergiesRecorded)}
@@ -423,6 +443,7 @@ export function PatientSummary({
           isLoading: conditionsQ.isLoading,
           error: conditionsQ.error,
           refetch: conditionsQ.refetch,
+          fetchedAt: conditionsQ.fetchedAt,
           hasData: conditions.length > 0,
         }}
         emptyTitle={t(DP_STR.noConditions)}
@@ -460,6 +481,7 @@ export function PatientSummary({
           isLoading: medicationsQ.isLoading,
           error: medicationsQ.error,
           refetch: medicationsQ.refetch,
+          fetchedAt: medicationsQ.fetchedAt,
           hasData:
             medications.length > 0 ||
             (detail?.activeMedications?.trim().length ?? 0) > 0,
@@ -496,6 +518,7 @@ export function PatientSummary({
           isLoading: vitalsQ.isLoading,
           error: vitalsQ.error,
           refetch: vitalsQ.refetch,
+          fetchedAt: vitalsQ.fetchedAt,
           hasData: vitals.length > 0,
         }}
         emptyTitle={t(DP_STR.noVitals)}
@@ -526,6 +549,7 @@ export function PatientSummary({
           isLoading: prescriptionsQ.isLoading,
           error: prescriptionsQ.error,
           refetch: prescriptionsQ.refetch,
+          fetchedAt: prescriptionsQ.fetchedAt,
           hasData: prescriptions.length > 0,
         }}
         emptyTitle={t(DP_STR.noPrescriptions)}
@@ -561,6 +585,7 @@ export function PatientSummary({
           isLoading: labOrdersQ.isLoading,
           error: labOrdersQ.error,
           refetch: labOrdersQ.refetch,
+          fetchedAt: labOrdersQ.fetchedAt,
           hasData: labOrders.length > 0,
         }}
         emptyTitle={t(DP_STR.noLabOrders)}
@@ -672,6 +697,7 @@ const styles = StyleSheet.create({
   stateCol: { gap: spacing.sm },
   stateText: { fontSize: fontSize.bodySm, flexShrink: 1 },
   emptyTitle: { fontSize: fontSize.bodySm, fontWeight: '600' },
+  freshness: { fontSize: fontSize.caption, marginTop: 2 },
   trailingPills: { alignItems: 'flex-end', gap: spacing.xs },
   actions: { gap: spacing.sm, marginTop: spacing.sm },
   deceased: { fontSize: fontSize.bodySm, fontWeight: '600', textAlign: 'center' },

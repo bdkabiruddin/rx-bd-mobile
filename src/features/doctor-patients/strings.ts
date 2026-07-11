@@ -48,6 +48,12 @@ export const DP_STR = {
     en: 'The patient has not granted consent for this part of their record.',
     bn: 'রোগী তাঁর রেকর্ডের এই অংশ দেখার সম্মতি দেননি।',
   },
+  // Per-section freshness (audit M7 — stale clinical data must not look current)
+  sectionUpdated: { en: 'Updated', bn: 'হালনাগাদ' },
+  sectionRefreshFailed: {
+    en: "Couldn't refresh — showing saved data",
+    bn: 'রিফ্রেশ করা যায়নি — সংরক্ষিত তথ্য দেখানো হচ্ছে',
+  },
   recordLocked: {
     en: 'This patient record is restricted',
     bn: 'এই রোগীর রেকর্ডটি সীমাবদ্ধ',

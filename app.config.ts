@@ -64,7 +64,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       'expo-secure-store',
       'expo-local-authentication',
       'expo-notifications',
-      'expo-screen-capture',
+      // NOTE: expo-screen-capture ships NO config plugin — listing it here made
+      // `expo config`/prebuild require its runtime entry and crash. It works via
+      // its runtime API (preventScreenCaptureAsync/FLAG_SECURE), so it does not
+      // belong in the plugins array. Removed to unblock the native build.
       [
         'expo-build-properties',
         {

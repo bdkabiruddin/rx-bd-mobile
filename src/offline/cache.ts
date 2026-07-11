@@ -2,7 +2,7 @@
 // with a TTL and tenant/user scope. Screens render the cached value
 // immediately with a freshness badge, then background-refresh.
 
-import { decrypt, encrypt } from './codec';
+import { decrypt, encrypt, isCodecReady } from './codec';
 import { getDb } from './db';
 
 export interface CacheEntry<T> {
@@ -20,6 +20,13 @@ export async function putCache<T>(
   value: T,
   opts: { tenantId?: string; userId?: string; ttlMs?: number; isPhi?: boolean } = {},
 ): Promise<void> {
+  // Degrade to online-only when the PHI codec isn't configured (e.g. the
+  // on-device Web Crypto backend is unavailable — RN/Hermes has no
+  // SubtleCrypto). Skip the write rather than throwing: fail-closed is
+  // preserved (we persist NOTHING, so no plaintext PHI can reach disk) while
+  // PHI screens keep working against the live server. The encrypted offline
+  // cache resumes automatically once a real codec is installed at boot.
+  if (!isCodecReady()) return;
   const db = await getDb();
   const now = Date.now();
   const valueEnc = await encrypt(JSON.stringify(value));

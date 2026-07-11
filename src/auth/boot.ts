@@ -3,6 +3,7 @@
 
 import { api, configureApiAuth, request } from '@/api/client';
 import { type Result, ok } from '@/api/errors';
+import { formatPhoneBd } from '@/i18n/formatters';
 import { wipeAllLocalData } from '@/offline/wipe';
 import { deregisterCurrentPush } from '@/push/register';
 
@@ -39,10 +40,13 @@ export async function login(
   identifier: string,
   password: string,
 ): Promise<Result<{ mfaRequired: boolean }>> {
-  const res = await api.post<LoginResponse>('/api/v1/auth/login', {
-    identifier,
-    password,
-  });
+  // The backend login schema accepts EITHER `email` OR `phone` (exactly one),
+  // not a generic `identifier`. Detect which the user typed and send the right
+  // field, normalizing phones to the +880 shape the backend expects.
+  const credentials = identifier.includes('@')
+    ? { email: identifier, password }
+    : { phone: formatPhoneBd(identifier), password };
+  const res = await api.post<LoginResponse>('/api/v1/auth/login', credentials);
   if (!res.ok) return res;
   const data = res.value;
 

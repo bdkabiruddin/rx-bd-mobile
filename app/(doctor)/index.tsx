@@ -14,6 +14,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import * as React from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
 
+import { AppointmentActionSheet } from '@/features/doctor-schedule/AppointmentActionSheet';
 import { useDoctorUpcoming } from '@/features/doctor-schedule/hooks';
 import {
   appointmentStatusTone,
@@ -47,6 +48,10 @@ export default function DoctorToday(): React.ReactElement {
   const theme = useTheme();
 
   const { data, fetchedAt, isLoading, error, refetch } = useDoctorUpcoming();
+
+  // Tapping a row opens the status action sheet (check-in / start / complete /
+  // no-show / cancel). The doctor's landing is no longer read-only.
+  const [active, setActive] = React.useState<DoctorUpcomingAppointment | null>(null);
 
   // Refresh the "today" boundary whenever the tab regains focus so an
   // overnight app stays honest about which day it is.
@@ -146,6 +151,7 @@ export default function DoctorToday(): React.ReactElement {
             <ListRow
               title={rowTitle(item)}
               subtitle={rowSubtitle(item)}
+              onPress={() => setActive(item)}
               {...(item.durationMinutes !== undefined
                 ? {
                     meta: `${formatNumber(item.durationMinutes, lang)} ${t(SCHED_STR.minutesSuffix)}`,
@@ -162,6 +168,15 @@ export default function DoctorToday(): React.ReactElement {
           ListFooterComponent={quickLinks}
         />
       )}
+
+      {active ? (
+        <AppointmentActionSheet
+          appointmentId={active.appointmentId}
+          status={String(active.status)}
+          heading={rowTitle(active)}
+          onClose={() => setActive(null)}
+        />
+      ) : null}
     </ScreenScaffold>
   );
 }

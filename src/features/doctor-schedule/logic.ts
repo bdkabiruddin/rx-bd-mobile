@@ -7,11 +7,37 @@
 import type { Language } from '@/i18n/types';
 
 import type {
+  AppointmentStatus,
   BlockScheduleBody,
   DoctorUpcomingAppointment,
   MyScheduleSlot,
   PublishScheduleBody,
 } from './types';
+
+// ── Appointment status transitions (doctor-driven from Today) ─────────────
+
+/** The status changes a doctor may drive from the Today list for an
+ *  appointment currently in `status`. The backend enforces the authoritative
+ *  transition rules + per-status guards; we offer the plausible next actions
+ *  and surface any server rejection honestly. Terminal statuses return []. */
+export function nextStatusActions(status: string): AppointmentStatus[] {
+  switch (status) {
+    case 'SCHEDULED':
+    case 'CONFIRMED':
+      return ['CHECKED_IN', 'NO_SHOW', 'CANCELLED'];
+    case 'CHECKED_IN':
+      return ['IN_PROGRESS', 'NO_SHOW', 'CANCELLED'];
+    case 'IN_PROGRESS':
+      return ['COMPLETED', 'CANCELLED'];
+    default:
+      return [];
+  }
+}
+
+/** Transitions the doctor should justify with a reason (cancel / no-show). */
+export function statusNeedsReason(target: AppointmentStatus): boolean {
+  return target === 'CANCELLED' || target === 'NO_SHOW';
+}
 
 // ── Status → StatusPill tone ────────────────────────────────────────────
 

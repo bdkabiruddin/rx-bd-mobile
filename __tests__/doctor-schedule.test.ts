@@ -15,10 +15,37 @@ import {
   formatNumber,
   groupSlotsByDay,
   makeEmptyBlockDraft,
+  nextStatusActions,
   parseDhakaDateTimeMs,
   shortPatientRef,
+  statusNeedsReason,
 } from '@/features/doctor-schedule/logic';
 import type { MyScheduleSlot } from '@/features/doctor-schedule/types';
+
+describe('nextStatusActions (doctor Today status transitions)', () => {
+  it('offers check-in / no-show / cancel from SCHEDULED and CONFIRMED', () => {
+    expect(nextStatusActions('SCHEDULED')).toEqual(['CHECKED_IN', 'NO_SHOW', 'CANCELLED']);
+    expect(nextStatusActions('CONFIRMED')).toEqual(['CHECKED_IN', 'NO_SHOW', 'CANCELLED']);
+  });
+  it('advances CHECKED_IN → start / no-show / cancel', () => {
+    expect(nextStatusActions('CHECKED_IN')).toEqual(['IN_PROGRESS', 'NO_SHOW', 'CANCELLED']);
+  });
+  it('offers only complete / cancel while IN_PROGRESS', () => {
+    expect(nextStatusActions('IN_PROGRESS')).toEqual(['COMPLETED', 'CANCELLED']);
+  });
+  it('returns no actions for terminal / unknown statuses', () => {
+    for (const s of ['COMPLETED', 'NO_SHOW', 'CANCELLED', 'WEIRD']) {
+      expect(nextStatusActions(s)).toEqual([]);
+    }
+  });
+  it('requires a reason only for cancel / no-show', () => {
+    expect(statusNeedsReason('CANCELLED')).toBe(true);
+    expect(statusNeedsReason('NO_SHOW')).toBe(true);
+    expect(statusNeedsReason('CHECKED_IN')).toBe(false);
+    expect(statusNeedsReason('IN_PROGRESS')).toBe(false);
+    expect(statusNeedsReason('COMPLETED')).toBe(false);
+  });
+});
 
 describe('appointmentStatusTone — locked pill tones', () => {
   it('maps the appointment lifecycle', () => {

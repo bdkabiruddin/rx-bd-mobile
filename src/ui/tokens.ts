@@ -54,6 +54,8 @@ export interface Theme {
   line: string; lineStrong: string; inputBorder: string;
   accent: string; accentHover: string; accentFg: string; accentSoft: string;
   status: StatusTokens;
+  /** Semi-transparent backdrop behind modals / action sheets. */
+  scrim: string;
 }
 
 export const lightTheme: Theme = {
@@ -73,6 +75,7 @@ export const lightTheme: Theme = {
   accentFg: '#ffffff',
   accentSoft: palette.teal[50],
   status: lightStatus,
+  scrim: 'rgba(11,18,32,0.45)',
 };
 
 export const darkTheme: Theme = {
@@ -92,6 +95,7 @@ export const darkTheme: Theme = {
   accentFg: palette.gray[950],
   accentSoft: palette.gray[800],
   status: darkStatus,
+  scrim: 'rgba(0,0,0,0.6)',
 };
 
 // Type scale + spacing (8pt grid) — minimal, extend as primitives land.

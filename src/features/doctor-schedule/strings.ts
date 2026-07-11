@@ -24,6 +24,22 @@ export const SCHED_STR = {
   patientRef: { en: 'Patient ID', bn: 'রোগী আইডি' },
   minutesSuffix: { en: 'min', bn: 'মিনিট' },
 
+  // Appointment status actions (tap a Today row)
+  statusReasonOptional: { en: 'Reason (optional)', bn: 'কারণ (ঐচ্ছিক)' },
+  statusReasonRequired: {
+    en: 'Add a reason to cancel or mark no-show.',
+    bn: 'বাতিল বা অনুপস্থিত চিহ্নিত করতে একটি কারণ লিখুন।',
+  },
+  confirmStatusChange: {
+    en: 'Update this appointment?',
+    bn: 'এই অ্যাপয়েন্টমেন্ট হালনাগাদ করবেন?',
+  },
+  noStatusActions: {
+    en: 'No further actions for this appointment.',
+    bn: 'এই অ্যাপয়েন্টমেন্টে আর কোনো কাজ নেই।',
+  },
+  closeSheet: { en: 'Close', bn: 'বন্ধ করুন' },
+
   // Schedule screen
   scheduleTitle: { en: 'My schedule', bn: 'আমার শিডিউল' },
   weeklyTemplate: { en: 'Weekly schedule', bn: 'সাপ্তাহিক শিডিউল' },
@@ -161,6 +177,24 @@ export function dayOfWeekLabel(day: string): Localized {
 }
 
 /** Localized appointment-status label; unknown values pass through. */
+/** Verb label for the button that TRANSITIONS an appointment to `target`. */
+export function appointmentActionLabel(target: string): Localized {
+  switch (target) {
+    case 'CHECKED_IN':
+      return { en: 'Check in', bn: 'চেক ইন' };
+    case 'IN_PROGRESS':
+      return { en: 'Start visit', bn: 'ভিজিট শুরু' };
+    case 'COMPLETED':
+      return { en: 'Complete', bn: 'সম্পন্ন' };
+    case 'NO_SHOW':
+      return { en: 'No-show', bn: 'অনুপস্থিত' };
+    case 'CANCELLED':
+      return { en: 'Cancel appointment', bn: 'অ্যাপয়েন্টমেন্ট বাতিল' };
+    default:
+      return { en: target, bn: target };
+  }
+}
+
 export function appointmentStatusLabel(status: string): Localized {
   switch (status) {
     case 'SCHEDULED':

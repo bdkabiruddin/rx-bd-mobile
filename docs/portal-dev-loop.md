@@ -16,6 +16,13 @@ rx-bd `:3000`, seed login `patient@rx.bd` / `DemoPass123!`.
 
 ## Shipped
 
+- **#4 (doctor, FEATURE GAP) — cancel a pending lab order + reusable ReasonSheet.**
+  "My orders" rows were non-interactive. PENDING/IN_PROGRESS orders are now
+  tappable → a shared `ReasonSheet` (required justification, ≥10 chars) →
+  `PATCH /lab-orders/{id}/status { newStatus: CANCELLED, reason }` → refresh.
+  New reusable `src/ui/ReasonSheet` (next reused by deny-refill / cancel-
+  appointment / decline-referral) + `isCancellableOrderStatus` unit test.
+  Verified: tsc 0, eslint 0, jest 387/387; doctor walkthrough due (#2/#3/#4).
 - **#3 (doctor, FEATURE GAP) — appointment status actions on Today.** The
   doctor's landing was 100% read-only. Tapping an appointment now opens a status
   action sheet (check-in → start visit → complete, or no-show / cancel with a
@@ -51,10 +58,12 @@ appointments/[id]`.
 DOCTOR (finish first):
 - [x] Appointment status actions on Today (shipped #3). Follow-up: reschedule
       (needs a date/time picker) + a tappable appointment-detail screen.
-- [ ] Refill-approval queue — `GET /doctors/{id}/refills/pending` + **← next**
-      `/refills/{id}/safety-eval` + `PATCH approve|deny`. Clone orders/inbox.
+- [ ] **NEXT: doctor-portal on-device walkthrough** — verify slices #2/#3/#4
+      live (chart freshness, Today status actions, order cancel), then resume.
 - [ ] Incoming-referrals inbox + respond/complete — `GET /referrals/inbox`,
-      `PATCH /referrals/{id}/respond|complete`.
+      `PATCH /referrals/{id}/respond|complete`. **← next feature gap**
+- [ ] Refill-approval queue (EPIC — phase it: pending list → safety-eval +
+      approve/deny) — `GET /doctors/{id}/refills/pending`.
 - [ ] Add allergy from chart — `POST /patients/{id}/allergies` (safety-positive).
 - [ ] Add/update condition from chart — `POST /patients/{id}/conditions`,
       `PATCH /conditions/{id}/status`.
@@ -63,7 +72,7 @@ DOCTOR (finish first):
       consents/requests` (converts the dead-end locked state into an action).
 - [ ] Prescription detail + PDF + cancel from chart — `GET /prescriptions/{id}`,
       `POST /me/prescriptions/{id}/pdf`, `PATCH /prescriptions/{id}/status`.
-- [ ] Cancel a pending lab order — `PATCH /lab-orders/{id}/status`.
+- [x] Cancel a pending lab order (shipped #4, via ReasonSheet).
 - [ ] Add a recurring schedule slot (only remove exists today) —
       `POST /doctors/me/schedule/recurring` (append + republish).
 - [ ] EPIC (phased): clinical encounter / visit notes from queue Complete —

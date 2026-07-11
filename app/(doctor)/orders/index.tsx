@@ -8,11 +8,13 @@
 // Row = tests · patient ref · ordered date · status pill (+ priority pill
 // when URGENT/STAT). New-order entry point lives here too.
 
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, View } from 'react-native';
 
 import {
+  DOCTOR_ORDERS_KEY,
   useAckedResults,
   useMyLabOrders,
   useResultsInbox,
@@ -20,6 +22,7 @@ import {
 import {
   countUnacknowledged,
   formatNumber,
+  isCancellableOrderStatus,
   joinParts,
   orderStatusTone,
   priorityTone,
@@ -34,10 +37,12 @@ import {
 } from '@/features/doctor-orders/strings';
 import type { MyLabOrderRow } from '@/features/doctor-orders/types';
 import { COMMON, formatDate, formatDateTime, useT } from '@/i18n';
+import { useWrite } from '@/offline/useWrite';
 import { Button } from '@/ui/Button';
 import { EmptyState } from '@/ui/EmptyState';
 import { FreshnessBadge } from '@/ui/FreshnessBadge';
 import { ListRow } from '@/ui/ListRow';
+import { ReasonSheet } from '@/ui/ReasonSheet';
 import { ScreenScaffold } from '@/ui/ScreenScaffold';
 import { SectionHeader } from '@/ui/SectionHeader';
 import { StatusPill } from '@/ui/StatusPill';
@@ -52,6 +57,9 @@ export default function DoctorOrdersIndex(): React.ReactElement {
   const ordersQ = useMyLabOrders();
   const inboxQ = useResultsInbox();
   const acked = useAckedResults((s) => s.ids);
+  const queryClient = useQueryClient();
+  const cancelWrite = useWrite<unknown>();
+  const [cancelling, setCancelling] = React.useState<MyLabOrderRow | null>(null);
 
   const orders = React.useMemo(
     () =>
@@ -61,6 +69,23 @@ export default function DoctorOrdersIndex(): React.ReactElement {
       ),
     [ordersQ.data],
   );
+
+  const doCancel = (order: MyLabOrderRow, reason: string): void => {
+    void (async () => {
+      const res = await cancelWrite.submit({
+        method: 'PATCH',
+        path: `/api/v1/lab-orders/${encodeURIComponent(order.labOrderId)}/status`,
+        body: { newStatus: 'CANCELLED', reason },
+      });
+      if (res.ok) {
+        void queryClient.invalidateQueries({ queryKey: [DOCTOR_ORDERS_KEY] });
+        setCancelling(null);
+        Alert.alert(t(ORD_STR.orderCancelled));
+      } else {
+        Alert.alert(t(COMMON.genericError), res.error.message);
+      }
+    })();
+  };
 
   // Unacknowledged count — never fabricate a zero: while the inbox is
   // loading say so, and when it could not be read at all say THAT.
@@ -94,11 +119,15 @@ export default function DoctorOrdersIndex(): React.ReactElement {
         : null,
     ]);
     const showPriority = item.priority === 'STAT' || item.priority === 'URGENT';
+    const cancellable = isCancellableOrderStatus(
+      item.status !== undefined ? String(item.status) : undefined,
+    );
     return (
       <ListRow
         title={title}
         {...(subtitle.length > 0 ? { subtitle } : {})}
-        chevron={false}
+        chevron={cancellable}
+        {...(cancellable ? { onPress: () => setCancelling(item) } : {})}
         right={
           <View style={styles.trailingPills}>
             {showPriority ? (
@@ -188,6 +217,16 @@ export default function DoctorOrdersIndex(): React.ReactElement {
       />
       {header}
       {body}
+      {cancelling ? (
+        <ReasonSheet
+          heading={t(ORD_STR.cancelOrder)}
+          placeholder={t(ORD_STR.cancelOrderReason)}
+          confirmLabel={t(ORD_STR.cancelOrderConfirm)}
+          busy={cancelWrite.busy}
+          onConfirm={(reason) => doCancel(cancelling, reason)}
+          onClose={() => setCancelling(null)}
+        />
+      ) : null}
     </ScreenScaffold>
   );
 }

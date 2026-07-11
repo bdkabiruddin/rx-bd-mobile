@@ -9,6 +9,13 @@ export const ORD_STR = {
   ordersTitle: { en: 'Lab orders', bn: 'ল্যাব অর্ডার' },
   myOrders: { en: 'My lab orders', bn: 'আমার ল্যাব অর্ডার' },
   newOrder: { en: 'New lab order', bn: 'নতুন ল্যাব অর্ডার' },
+  cancelOrder: { en: 'Cancel lab order', bn: 'ল্যাব অর্ডার বাতিল' },
+  cancelOrderReason: {
+    en: 'Why are you cancelling this order?',
+    bn: 'এই অর্ডারটি কেন বাতিল করছেন?',
+  },
+  cancelOrderConfirm: { en: 'Cancel order', bn: 'অর্ডার বাতিল করুন' },
+  orderCancelled: { en: 'Order cancelled', bn: 'অর্ডার বাতিল হয়েছে' },
   noOrders: { en: 'No lab orders yet', bn: 'এখনো কোনো ল্যাব অর্ডার নেই' },
   noOrdersHint: {
     en: 'Lab orders you place will appear here.',

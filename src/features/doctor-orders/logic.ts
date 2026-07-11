@@ -25,6 +25,11 @@ export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
 
 /** LabOrder lifecycle → pill tone. Unknown values stay neutral — red is
  *  reserved for result-abnormality flags, never order states. */
+/** A lab order the ordering doctor can still cancel (not COMPLETED/CANCELLED). */
+export function isCancellableOrderStatus(status: string | undefined): boolean {
+  return status === 'PENDING' || status === 'IN_PROGRESS';
+}
+
 export function orderStatusTone(status: string | undefined): Tone {
   switch (status) {
     case 'PENDING':

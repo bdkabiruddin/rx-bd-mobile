@@ -25,8 +25,21 @@ import {
   testNamesLine,
   toggleTest,
   visibleInboxRows,
+  isCancellableOrderStatus,
 } from '@/features/doctor-orders/logic';
 import type { ResultsInboxRow } from '@/features/doctor-orders/types';
+
+describe('isCancellableOrderStatus', () => {
+  it('is true only for PENDING / IN_PROGRESS', () => {
+    expect(isCancellableOrderStatus('PENDING')).toBe(true);
+    expect(isCancellableOrderStatus('IN_PROGRESS')).toBe(true);
+  });
+  it('is false for terminal / unknown / undefined', () => {
+    for (const s of ['COMPLETED', 'CANCELLED', 'REJECTED', undefined]) {
+      expect(isCancellableOrderStatus(s)).toBe(false);
+    }
+  });
+});
 
 describe('pill tones — locked mappings', () => {
   it('maps the order lifecycle (red reserved for result flags)', () => {

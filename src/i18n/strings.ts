@@ -9,6 +9,7 @@ export const COMMON = {
   retry: { en: 'Retry', bn: 'আবার চেষ্টা করুন' },
   cancel: { en: 'Cancel', bn: 'বাতিল' },
   confirm: { en: 'Confirm', bn: 'নিশ্চিত করুন' },
+  close: { en: 'Close', bn: 'বন্ধ করুন' },
   offline: { en: 'Offline', bn: 'অফলাইন' },
   pendingSync: { en: 'Pending sync', bn: 'সিঙ্ক বাকি' },
   signIn: { en: 'Sign in', bn: 'সাইন ইন' },

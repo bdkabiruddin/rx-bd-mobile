@@ -253,7 +253,7 @@ export default function DoctorQueueScreen(): React.ReactElement {
       <View style={styles.headerWrap}>
         {stale ? (
           <Text
-            style={[styles.stale, { color: theme.status.warning }]}
+            style={[styles.stale, { color: theme.status.warningText }]}
             accessibilityRole="alert"
           >
             {`${t(DQ.staleNotice)} ${formatDateTime(snap.fetchedAt, lang)}`}

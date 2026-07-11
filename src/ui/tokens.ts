@@ -25,14 +25,27 @@ export const palette = {
   },
 } as const;
 
-// Locked safety colors — identical across light/dark intent, never branded.
-const status = {
+// Locked safety colors — chip/fill values identical across light/dark, never
+// branded. `warningText` is the amber used when a warning is rendered as TEXT
+// directly on the theme background (not on a *Soft chip): it must meet WCAG AA
+// on that background, so it stays dark on light but LIGHTENS on dark. The base
+// `warning` (dark amber) still reads AA as text on the light `warningSoft` chip.
+const statusBase = {
   success: '#15803d', successFg: '#ffffff', successSoft: '#dcfce7',
   warning: '#b45309', warningFg: '#ffffff', warningSoft: '#fef3c7',
   danger: '#b91c1c', dangerFg: '#ffffff', dangerSoft: '#fee2e2',
   info: '#1d4ed8', infoFg: '#ffffff', infoSoft: '#dbeafe', infoStrong: '#1e3a8a',
   clinicalCritical: '#7f1d1d', clinicalCriticalFg: '#ffffff',
 } as const;
+// warningText darkens on light / lightens on dark so the clinical safety +
+// staleness disclosures meet WCAG AA on the theme background in BOTH schemes.
+// (not `as const`: warningText differs per scheme, so it must widen to string.)
+const lightStatus = { ...statusBase, warningText: statusBase.warning }; // #b45309 on #fff ≈ 5.8:1
+const darkStatus = { ...statusBase, warningText: '#fbbf24' }; //          amber-400 on #0b1220 ≈ 11:1
+
+// Status values are consumed as ColorValue strings; widen the per-scheme
+// literals so light/dark share one shape (warningText differs between them).
+type StatusTokens = { readonly [K in keyof typeof lightStatus]: string };
 
 export interface Theme {
   scheme: 'light' | 'dark';
@@ -40,7 +53,7 @@ export interface Theme {
   fg: string; fgMuted: string; fgSubtle: string;
   line: string; lineStrong: string; inputBorder: string;
   accent: string; accentHover: string; accentFg: string; accentSoft: string;
-  status: typeof status;
+  status: StatusTokens;
 }
 
 export const lightTheme: Theme = {
@@ -59,7 +72,7 @@ export const lightTheme: Theme = {
   accentHover: palette.teal[800],
   accentFg: '#ffffff',
   accentSoft: palette.teal[50],
-  status,
+  status: lightStatus,
 };
 
 export const darkTheme: Theme = {
@@ -78,7 +91,7 @@ export const darkTheme: Theme = {
   accentHover: palette.teal[300],
   accentFg: palette.gray[950],
   accentSoft: palette.gray[800],
-  status,
+  status: darkStatus,
 };
 
 // Type scale + spacing (8pt grid) — minimal, extend as primitives land.

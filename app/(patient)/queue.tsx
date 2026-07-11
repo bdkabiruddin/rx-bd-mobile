@@ -133,7 +133,7 @@ export default function PatientQueueScreen(): React.ReactElement {
       <ScrollView contentContainerStyle={styles.body}>
         {stale ? (
           <Text
-            style={[styles.stale, { color: theme.status.warning }]}
+            style={[styles.stale, { color: theme.status.warningText }]}
             accessibilityRole="alert"
           >
             {`${t(QUEUE_STRINGS.staleNotice)} ${formatDateTime(snapshot.fetchedAt, lang)}`}

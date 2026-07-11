@@ -101,12 +101,12 @@ export function DryRunPanel({
                   </View>
                 ))}
                 {r?.structuredAllergySourceUnavailable === true ? (
-                  <Text style={[styles.honesty, { color: theme.status.warning }]}>
+                  <Text style={[styles.honesty, { color: theme.status.warningText }]}>
                     {t(STR.allergySourceUnavailable)}
                   </Text>
                 ) : null}
                 {r?.structuredMedicationSourceUnavailable === true ? (
-                  <Text style={[styles.honesty, { color: theme.status.warning }]}>
+                  <Text style={[styles.honesty, { color: theme.status.warningText }]}>
                     {t(STR.medSourceUnavailable)}
                   </Text>
                 ) : null}
